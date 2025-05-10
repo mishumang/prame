@@ -1,0 +1,2 @@
+D:/pranayama_-moni/android/app/.cxx/RelWithDebInfo/3lc6o4t1/x86/CMakeFiles/edit_cache.dir
+D:/pranayama_-moni/android/app/.cxx/RelWithDebInfo/3lc6o4t1/x86/CMakeFiles/rebuild_cache.dir
