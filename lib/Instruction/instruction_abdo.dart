@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
-import 'package:meditation_app/Breathing_Pages/bilateral_screen.dart';
+import 'package:meditation_app/Breathing_Pages/abdominal_46.dart';
 import 'package:meditation_app/Customization/customize.dart';
 
 class AbdominalBreathingPage extends StatefulWidget {
@@ -29,11 +29,11 @@ class _AbdominalBreathingPageState extends State<AbdominalBreathingPage> {
 
   static const _soundOptions = [
     {'name': 'None', 'imagePath': 'assets/images/sound_none.png', 'audioPath': ''},
-    {'name': 'Birds', 'imagePath': 'assets/images/sound_sitar.png', 'audioPath': '../assets/music/birds.mp3'},
-    {'name': 'Rain', 'imagePath': 'assets/images/sound_mountain.png', 'audioPath': '../assets/music/rain.mp3'},
-    {'name': 'Waves', 'imagePath': 'assets/images/sound_waves.png', 'audioPath': ''},
-    {'name': 'AUM', 'imagePath': 'assets/images/sound_om.png', 'audioPath': ''},
-    {'name': 'Flute', 'imagePath': 'assets/images/sound_gong.png', 'audioPath': '../assets/music/flute.mp3'},
+    {'name': 'Birds', 'imagePath': 'assets/images/sound_sitar.png', 'audioPath': 'music/birds.mp3'},
+    {'name': 'Rain', 'imagePath': 'assets/images/sound_mountain.png', 'audioPath': 'music/rain.mp3'},
+    {'name': 'Waves', 'imagePath': 'assets/images/sound_waves.png', 'audioPath': 'music/waves.mp3'},
+    {'name': 'AUM', 'imagePath': 'assets/images/sound_om.png', 'audioPath': 'music/aum.mp3'},
+    {'name': 'Flute', 'imagePath': 'assets/images/sound_gong.png', 'audioPath': 'music/flute.mp3'},
   ];
 
   static const _techniques = [
@@ -511,7 +511,7 @@ class _AbdominalBreathingPageState extends State<AbdominalBreathingPage> {
             context,
             PageRouteBuilder(
               pageBuilder: (context, animation, secondaryAnimation) =>
-                  BilateralScreen(
+                  AbdominalScreen(
                     inhaleDuration: inhale,
                     exhaleDuration: exhale,
                     rounds: rounds,

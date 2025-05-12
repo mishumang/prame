@@ -8,6 +8,8 @@ class BilateralScreen extends StatefulWidget {
   final int rounds;
   final String imagePath;
   final String audioPath;
+  final String inhaleAudioPath;
+  final String exhaleAudioPath;
 
   const BilateralScreen({
     Key? key,
@@ -16,6 +18,8 @@ class BilateralScreen extends StatefulWidget {
     required this.rounds,
     required this.imagePath,
     required this.audioPath,
+    this.inhaleAudioPath = 'assets/music/inhale_bell1.mp3', // Default value added
+    this.exhaleAudioPath = 'assets/music/exhale_bell1.mp3', // Default value added
   }) : super(key: key);
 
   @override
@@ -25,360 +29,353 @@ class BilateralScreen extends StatefulWidget {
 class _BilateralScreenState extends State<BilateralScreen>
     with SingleTickerProviderStateMixin {
   late AnimationController _controller;
-  late AudioPlayer _audioPlayer; // For guide audios and bell sounds
-  late AudioPlayer _backgroundAudioPlayer; // For ambient background audio
-  late AudioPlayer _bellPlayer; // New separate player for bell sounds
+  late Animation<double> sizeTween;
+  late AudioPlayer _ambientPlayer;
+  late AudioPlayer _inhalePlayer;  // Separate player for inhale sound
+  late AudioPlayer _exhalePlayer;  // Separate player for exhale sound
+
+  int _countdown = 3;
+  bool _isCountingDown = true;
   bool isRunning = false;
   bool isAudioPlaying = true;
-  String breathingText = "Starting Session...";
-  int _currentRound = 0;
-  String _currentPhase = "prepare";
-  bool _guidesCompleted = false; // Track guide audio completion
+  int currentRound = 0;
 
-  // Guide states
-  bool _isGuide1Playing = false;
-  bool _isGuide2Playing = false;
-  bool _showSkipGuide1 = false;
-  late Timer _skipButtonTimer;
-
-  late final AssetSource _inhaleSound;
-  late final AssetSource _exhaleSound;
-  late final AssetSource _guide1Sound;
-  late final AssetSource _guide2Sound;
-  late final AssetSource? _backgroundSound;
-
-  late final double _inhaleFraction;
-  late final double _gapFraction;
+  String breathingText = "Get Ready";
+  Timer? _countdownTimer;
+  Timer? _phaseTimer;
 
   @override
   void initState() {
     super.initState();
 
-    // Initialize audio sources
-    _inhaleSound = AssetSource('../assets/music/inhale_bell1.mp3');
-    _exhaleSound = AssetSource('../assets/music/exhale_bell1.mp3');
-    _guide1Sound = AssetSource('../assets/music/guide-calm1.mp3');
-    _guide2Sound = AssetSource('../assets/music/guide_calm2.mp3');
-    _backgroundSound = widget.audioPath.isNotEmpty ? AssetSource(widget.audioPath) : null;
+    _ambientPlayer = AudioPlayer()..setVolume(1.0); // Slightly lower volume for ambient
+    _inhalePlayer = AudioPlayer()..setVolume(0.5);  // Full volume for bells
+    _exhalePlayer = AudioPlayer()..setVolume(0.5);
+    // Preload audio files to reduce latency
+    _preloadAudio();
 
-    debugPrint('Received audioPath: ${widget.audioPath}');
-    debugPrint('Background sound initialized: ${_backgroundSound?.path}');
+    // Start countdown
+    _startCountdown();
 
-    if (_backgroundSound == null && widget.audioPath.isNotEmpty) {
-      debugPrint('Warning: Failed to initialize background sound for audioPath: ${widget.audioPath}');
-      if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('No ambient audio selected or invalid audio path')),
-        );
-      }
-    }
-
-    // Calculate animation fractions
-    final totalDuration = widget.inhaleDuration + 0.10 + widget.exhaleDuration;
-    _inhaleFraction = widget.inhaleDuration / totalDuration;
-    _gapFraction = (widget.inhaleDuration + 0.10) / totalDuration;
-
-    // Initialize audio players
-    _audioPlayer = AudioPlayer()
-      ..setReleaseMode(ReleaseMode.stop)
-      ..setVolume(isAudioPlaying ? 0.5 : 0.0); // For guide sounds
-
-    _bellPlayer = AudioPlayer()
-      ..setReleaseMode(ReleaseMode.stop)
-      ..setVolume(isAudioPlaying ? 0.5 : 0.0); // For bell sounds
-
-    _backgroundAudioPlayer = AudioPlayer()
-      ..setReleaseMode(ReleaseMode.loop)
-      ..setVolume(isAudioPlaying ? 1.0 : 0.0); // Set to full volume for background
-
-    // Initialize animation controller
+    // Animation setup
     _controller = AnimationController(
-      duration: Duration(seconds: totalDuration.toInt()),
+      duration: Duration(seconds: widget.inhaleDuration + widget.exhaleDuration),
       vsync: this,
     );
 
-    _controller.addListener(_handleAnimationProgress);
-    _controller.addStatusListener(_handleAnimationStatus);
+    sizeTween = Tween<double>(begin: 1.0, end: 1.5).animate(
+      CurvedAnimation(
+        parent: _controller,
+        curve: const Interval(0.0, 1.0, curve: Curves.easeInOut),
+      ),
+    );
 
-    // Start background audio immediately if available
-    if (_backgroundSound != null && isAudioPlaying) {
-      _startBackgroundAudio();
-    }
-
-    // Preload audio and start guide audios
-    _preloadAudio().then((_) {
-      debugPrint('Audio preloaded, starting guides');
-      _startGuides();
-    });
-  }
-
-  // New method to start background audio
-  Future<void> _startBackgroundAudio() async {
-    if (_backgroundSound == null) return;
-
-    try {
-      debugPrint('Attempting to start background audio...');
-      await _backgroundAudioPlayer.setSource(_backgroundSound!);
-      await _backgroundAudioPlayer.play(_backgroundSound!);
-      debugPrint('Background audio started successfully');
-    } catch (e) {
-      debugPrint('Error starting background audio: $e');
-      if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('Error starting background audio: $e')),
-        );
-      }
-    }
-  }
-
-  // Preload audio sources
-  Future<void> _preloadAudio() async {
-    try {
-      debugPrint('Starting audio preload...');
-      await Future.wait([
-        _audioPlayer.setSource(_guide1Sound),
-        _audioPlayer.setSource(_guide2Sound),
-        _bellPlayer.setSource(_inhaleSound),
-        _bellPlayer.setSource(_exhaleSound),
-      ]);
-      debugPrint('All audio sources preloaded successfully');
-    } catch (e) {
-      debugPrint('Error preloading audio: $e');
-      if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('Error loading audio: $e')),
-        );
-      }
-    }
-  }
-
-  // Start guide audio sequence
-  Future<void> _startGuides() async {
-    debugPrint('Starting guide audio sequence');
-    await _playGuide1();
-    if (mounted && !_isGuide2Playing) {
-      await _playGuide2();
-    }
-    if (mounted) {
+    _controller.addListener(() {
       setState(() {
-        _guidesCompleted = true;
-        _isGuide2Playing = false;
-        isRunning = true;
-        breathingText = "Inhale";
-        _currentPhase = "inhale";
-      });
-      debugPrint('Guides completed, starting breathing cycle');
-      _startBreathingCycle();
-    }
-  }
+        double totalDuration = widget.inhaleDuration.toDouble() + widget.exhaleDuration.toDouble();
+        double inhalePortion = widget.inhaleDuration.toDouble() / totalDuration;
 
-  // Play first guide audio (guide-calm1.mp3)
-  Future<void> _playGuide1() async {
-    try {
-      setState(() {
-        _isGuide1Playing = true;
-        breathingText = "Relax and Prepare";
-        _showSkipGuide1 = false;
-      });
-
-      debugPrint('Playing Guide 1');
-      _skipButtonTimer = Timer(const Duration(seconds: 3), () {
-        if (mounted && _isGuide1Playing) {
-          setState(() => _showSkipGuide1 = true);
+        if (_controller.value <= inhalePortion) {
+          breathingText = "Inhale";
+        } else {
+          breathingText = "Exhale";
         }
       });
+    });
 
-      await _audioPlayer.stop();
-      await _audioPlayer.play(_guide1Sound);
-      await _audioPlayer.onPlayerComplete.first; // Wait for completion
-      debugPrint('Guide 1 completed');
-    } catch (e) {
-      debugPrint('Error playing Guide 1: $e');
-      if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('Error playing Guide 1: $e')),
-        );
-      }
-    } finally {
-      if (mounted) {
-        setState(() => _isGuide1Playing = false);
-        _skipButtonTimer.cancel();
-      }
-    }
-  }
+    _controller.addStatusListener((status) async {
+      if (status == AnimationStatus.completed) {
+        currentRound++;
+        if (currentRound >= widget.rounds) {
+          // Session completed
+          setState(() {
+            breathingText = "Session Complete";
+            isRunning = false;
+          });
+          return;
+        }
 
-  // Skip first guide audio
-  Future<void> _skipGuide1() async {
-    if (!_isGuide1Playing) return;
-
-    debugPrint('Skipping Guide 1');
-    await _audioPlayer.stop();
-    _skipButtonTimer.cancel();
-    if (mounted) {
-      setState(() => _isGuide1Playing = false);
-      _playGuide2();
-    }
-  }
-
-  // Play second guide audio (guide-calm2.mp3)
-  Future<void> _playGuide2() async {
-    try {
-      setState(() {
-        _isGuide2Playing = true;
-        breathingText = "    Focus on\nYour Breathing";
-        _showSkipGuide1 = false;
-      });
-
-      debugPrint('Playing Guide 2');
-      await _audioPlayer.stop();
-      await _audioPlayer.play(_guide2Sound);
-      await _audioPlayer.onPlayerComplete.first; // Wait for completion
-      debugPrint('Guide 2 completed');
-    } catch (e) {
-      debugPrint('Error playing Guide 2: $e');
-      if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('Error playing Guide 2: $e')),
-        );
-      }
-    }
-  }
-
-  // Handle animation progress for breathing phases
-  void _handleAnimationProgress() {
-    if (!_guidesCompleted || _isGuide1Playing || _isGuide2Playing) return;
-
-    double progress = _controller.value;
-    String newPhase;
-
-    if (progress <= _inhaleFraction) {
-      newPhase = "inhale";
-    } else if (progress <= _gapFraction) {
-      newPhase = "gap";
-    } else {
-      newPhase = "exhale";
-    }
-
-    if (newPhase != _currentPhase) {
-      _currentPhase = newPhase;
-      if (isAudioPlaying && isRunning) {
-        _playPhaseSound(_currentPhase);
-      }
-
-      setState(() {
-        breathingText = _currentPhase == "gap" ? "" : _currentPhase.capitalize();
-      });
-    }
-  }
-
-  // Handle animation status (e.g., cycle completion)
-  Future<void> _handleAnimationStatus(AnimationStatus status) async {
-    if (!_guidesCompleted || _isGuide1Playing || _isGuide2Playing) return;
-
-    if (status == AnimationStatus.completed) {
-      _currentRound++;
-      if (_currentRound < widget.rounds) {
         _controller.reset();
-        await Future.delayed(const Duration(milliseconds: 2));
+        await Future.delayed(const Duration(milliseconds: 5));
         if (isRunning) {
           _startBreathingCycle();
         }
-      } else {
-        setState(() {
-          isRunning = false;
-          breathingText = "Complete";
-        });
-        // Stop both bell and ambient audio when session completes
-        await _audioPlayer.stop();
-        debugPrint('Stopping background audio on session completion');
-        await _backgroundAudioPlayer.stop();
-        debugPrint('Session completed, all audio stopped');
       }
-    }
+    });
   }
 
-  // Play bell sounds for inhale/exhale phases
-  Future<void> _playPhaseSound(String phase) async {
-    if (phase == "gap") return; // No sound for gap phase
-
+  // Preload audio to reduce latency
+  Future<void> _preloadAudio() async {
     try {
-      debugPrint('Before playing $phase sound, background state: ${_backgroundAudioPlayer.state}');
-      // Don't stop previous bell sound, just play the new one
-      if (phase == "inhale") {
-        debugPrint('Playing inhale bell sound');
-        await _bellPlayer.play(_inhaleSound);
-      } else if (phase == "exhale") {
-        debugPrint('Playing exhale bell sound');
-        await _bellPlayer.play(_exhaleSound);
-      }
-      debugPrint('After playing $phase sound, background state: ${_backgroundAudioPlayer.state}');
+      await _inhalePlayer.setSource(AssetSource(widget.inhaleAudioPath));
+      await _exhalePlayer.setSource(AssetSource(widget.exhaleAudioPath));
+      debugPrint('Audio files preloaded successfully');
     } catch (e) {
-      debugPrint('Error playing phase sound: $e');
-      if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('Error playing bell sound: $e')),
-        );
+      debugPrint('Error preloading audio: $e');
+    }
+  }
+
+  void _startCountdown() {
+    setState(() {
+      _isCountingDown = true;
+      _countdown = 3;
+      breathingText = "$_countdown";
+    });
+
+    _countdownTimer = Timer.periodic(const Duration(seconds: 1), (timer) {
+      setState(() {
+        if (_countdown > 1) {
+          _countdown--;
+          breathingText = "$_countdown";
+        } else {
+          _countdownTimer?.cancel();
+          _isCountingDown = false;
+          isRunning = true;
+          _playAmbientSound();
+          _startBreathingCycle();
+        }
+      });
+    });
+  }
+
+  void _startBreathingCycle() {
+    if (isRunning) {
+      // Cancel any existing phase timer
+      _phaseTimer?.cancel();
+
+      // Play inhale bell immediately
+      _playInhaleBell();
+
+      // Start the animation
+      _controller.forward(from: 0.0);
+
+      // Schedule exhale bell sound using a timer instead of relying on animation
+      _phaseTimer = Timer(Duration(seconds: widget.inhaleDuration), () {
+        if (isRunning) {
+          _playExhaleBell();
+        }
+      });
+    }
+  }
+
+  Future<void> _playInhaleBell() async {
+    try {
+      debugPrint('Playing inhale bell');
+      // Always reset position and play from the beginning
+      await _inhalePlayer.play(AssetSource(widget.inhaleAudioPath));
+    } catch (e) {
+      debugPrint('Error playing inhale bell: $e');
+    }
+  }
+
+  Future<void> _playExhaleBell() async {
+    try {
+      debugPrint('Playing exhale bell');
+      // Always reset position and play from the beginning
+      await _exhalePlayer.play(AssetSource(widget.exhaleAudioPath));
+
+    } catch (e) {
+      debugPrint('Error playing exhale bell: $e');
+
+    }
+  }
+
+  Future<void> _playAmbientSound() async {
+    if (isAudioPlaying && widget.audioPath.isNotEmpty) {
+      try {
+        await _ambientPlayer.play(AssetSource(widget.audioPath));
+        await _ambientPlayer.setReleaseMode(ReleaseMode.loop);
+      } catch (e) {
+        debugPrint('Error playing ambient sound: $e');
       }
     }
   }
 
-  // Start breathing cycle with bell sounds
-  Future<void> _startBreathingCycle() async {
-    if (!_guidesCompleted || _isGuide1Playing || _isGuide2Playing) {
-      debugPrint('Cannot start breathing cycle: guides not completed');
+  void toggleBreathing() {
+    if (_isCountingDown) {
+      _countdownTimer?.cancel();
+      _phaseTimer?.cancel();
+      setState(() {
+        _isCountingDown = false;
+        isRunning = false;
+        breathingText = "Paused";
+      });
       return;
     }
 
-    setState(() {
-      breathingText = "Inhale";
-      _currentPhase = "inhale";
-    });
-    _controller.forward();
-
-    if (isAudioPlaying) {
-      // Play bell sound for current phase
-      debugPrint('Starting breathing cycle, playing bell sound for $_currentPhase');
-      _playPhaseSound(_currentPhase);
-    } else {
-      debugPrint('Audio muted, skipping bell audio');
-    }
-  }
-
-  // Toggle breathing cycle (pause/resume)
-  Future<void> toggleBreathing() async {
-    if (!_guidesCompleted || _isGuide1Playing || _isGuide2Playing) return;
-
     if (isRunning) {
       _controller.stop();
-      // Don't stop any audio players when pausing
-      setState(() => isRunning = false);
-      debugPrint('Breathing paused');
+      _ambientPlayer.pause();
+      _phaseTimer?.cancel();
+      setState(() {
+        isRunning = false;
+        breathingText = "Paused";
+      });
     } else {
-      if (_currentRound >= widget.rounds) {
-        _currentRound = 0;
-      }
-      setState(() => isRunning = true);
-      debugPrint('Resuming breathing');
-      _startBreathingCycle();
+      setState(() {
+        isRunning = true;
+        if (_controller.value > 0) {
+          _controller.forward();
+          if (isAudioPlaying && widget.audioPath.isNotEmpty) {
+            _ambientPlayer.resume();
+          }
+
+          // If we're in the exhale phase and resuming
+          double totalDuration = widget.inhaleDuration.toDouble() + widget.exhaleDuration.toDouble();
+          double inhalePortion = widget.inhaleDuration.toDouble() / totalDuration;
+
+          if (_controller.value > inhalePortion) {
+            // We're in the exhale phase, schedule the next inhale
+            double remainingExhaleTime = (1 - _controller.value) * totalDuration;
+            _phaseTimer = Timer(Duration(milliseconds: (remainingExhaleTime * 1000).round()), () {
+              if (isRunning) {
+                // This will be called when the current cycle completes
+              }
+            });
+          } else {
+            // We're in the inhale phase, schedule the exhale
+            double remainingInhaleTime = (inhalePortion - _controller.value) * totalDuration;
+            _phaseTimer = Timer(Duration(milliseconds: (remainingInhaleTime * 1000).round()), () {
+              if (isRunning) {
+                _playExhaleBell();
+              }
+            });
+          }
+        } else {
+          _startBreathingCycle();
+          if (isAudioPlaying && widget.audioPath.isNotEmpty) {
+            _playAmbientSound();
+          }
+        }
+      });
     }
   }
 
-  // Toggle audio (mute/unmute both bell and ambient)
   Future<void> toggleAudio() async {
-    final newVolume = isAudioPlaying ? 0.0 : 1.0;
-    await _audioPlayer.setVolume(newVolume);
-    await _bellPlayer.setVolume(newVolume);
-    await _backgroundAudioPlayer.setVolume(newVolume);
-    setState(() => isAudioPlaying = !isAudioPlaying);
-    debugPrint('Audio ${isAudioPlaying ? 'unmuted' : 'muted'}');
-
-    // If unmuting and background audio is not playing, start it
-    if (isAudioPlaying && _backgroundSound != null) {
-      if (_backgroundAudioPlayer.state != PlayerState.playing) {
-        debugPrint('Resuming background audio after unmute');
-        await _startBackgroundAudio();
-      }
+    if (isAudioPlaying) {
+      await _ambientPlayer.pause();
+    } else if (isRunning && widget.audioPath.isNotEmpty) {
+      await _ambientPlayer.resume();
     }
+
+    setState(() {
+      isAudioPlaying = !isAudioPlaying;
+    });
+  }
+
+  @override
+  void dispose() {
+    _controller.dispose();
+    _ambientPlayer.dispose();
+    _inhalePlayer.dispose();
+    _exhalePlayer.dispose();
+    _countdownTimer?.cancel();
+    _phaseTimer?.cancel();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return Scaffold(
+      appBar: AppBar(
+        title: Text(
+          "Breathing Session (${widget.inhaleDuration}:${widget.exhaleDuration})",
+          style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold),
+        ),
+        centerTitle: true,
+        backgroundColor: Colors.blueGrey,
+        elevation: 10,
+        leading: IconButton(
+          icon: const Icon(Icons.arrow_back),
+          onPressed: () => Navigator.of(context).pop(),
+        ),
+      ),
+      body: Stack(
+        children: [
+          // Background image
+          Positioned.fill(
+            child: Image.asset(
+              widget.imagePath,
+              fit: BoxFit.cover,
+            ),
+          ),
+          // Dark overlay
+          Positioned.fill(
+            child: Container(
+              color: Colors.black.withOpacity(0.5),
+            ),
+          ),
+          Center(
+            child: Column(
+              mainAxisAlignment: MainAxisAlignment.spaceAround,
+              children: [
+                _buildTextDisplay(breathingText),
+                const SizedBox(height: 20),
+                _isCountingDown
+                    ? _buildCountdownDisplay()
+                    : _buildBreathingAnimation(),
+                const SizedBox(height: 50),
+                _buildControlButtons(),
+              ],
+            ),
+          ),
+          Positioned(
+            top: kToolbarHeight + 10,
+            right: 15,
+            child: IconButton(
+              icon: Icon(
+                isAudioPlaying ? Icons.volume_up : Icons.volume_off,
+                color: Colors.white,
+                size: 36.0,
+              ),
+              onPressed: toggleAudio,
+            ),
+          ),
+          // Session progress indicator
+          Positioned(
+            bottom: 20,
+            left: 0,
+            right: 0,
+            child: Center(
+              child: Text(
+                "Round: ${currentRound + 1}/${widget.rounds}",
+                style: const TextStyle(
+                  fontSize: 18,
+                  fontWeight: FontWeight.bold,
+                  color: Colors.white,
+                ),
+              ),
+            ),
+          ),
+          // Debug button for testing bell sounds (can be removed in production)
+          Positioned(
+            top: kToolbarHeight + 10,
+            left: 15,
+            child: Row(
+              children: [
+                ElevatedButton(
+                  onPressed: _playInhaleBell,
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: Colors.green,
+                    padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                  ),
+                  child: const Text("Test Inhale Bell", style: TextStyle(fontSize: 10)),
+                ),
+                const SizedBox(width: 5),
+                ElevatedButton(
+                  onPressed: _playExhaleBell,
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: Colors.blue,
+                    padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                  ),
+                  child: const Text("Test Exhale Bell", style: TextStyle(fontSize: 10)),
+                ),
+              ],
+            ),
+          ),
+        ],
+      ),
+    );
   }
 
   Widget _buildTextDisplay(String text) {
@@ -389,7 +386,7 @@ class _BilateralScreenState extends State<BilateralScreen>
         borderRadius: BorderRadius.circular(20),
         boxShadow: const [
           BoxShadow(
-            color: Colors.black,
+            color: Colors.black26,
             blurRadius: 10,
             offset: Offset(0, 4),
           ),
@@ -397,9 +394,8 @@ class _BilateralScreenState extends State<BilateralScreen>
       ),
       child: Text(
         text,
-        textAlign: TextAlign.center,
         style: const TextStyle(
-          fontSize: 30,
+          fontSize: 36,
           fontWeight: FontWeight.bold,
           color: Colors.white,
         ),
@@ -407,225 +403,82 @@ class _BilateralScreenState extends State<BilateralScreen>
     );
   }
 
-  Widget _buildBreathingImage() {
+  Widget _buildCountdownDisplay() {
+    return Container(
+      height: 200,
+      width: 200,
+      decoration: BoxDecoration(
+        color: Colors.blue.withOpacity(0.3),
+        shape: BoxShape.circle,
+        border: Border.all(color: Colors.white, width: 2),
+      ),
+      child: Center(
+        child: Text(
+          _countdown.toString(),
+          style: const TextStyle(
+            fontSize: 80,
+            fontWeight: FontWeight.bold,
+            color: Colors.white,
+          ),
+        ),
+      ),
+    );
+  }
+
+  Widget _buildBreathingAnimation() {
     return AnimatedBuilder(
       animation: _controller,
       builder: (context, child) {
         double progress = _controller.value;
         double scale;
 
-        if (progress <= _inhaleFraction) {
-          scale = 1.0 + 0.5 * (progress / _inhaleFraction);
-        } else if (progress <= _gapFraction) {
-          scale = 1.5;
+        // Calculate scale based on breathing phase
+        if (progress <= widget.inhaleDuration / (widget.inhaleDuration + widget.exhaleDuration)) {
+          // Inhale phase - expand from 1.0 to 1.5
+          scale = 1.0 + 0.5 * (progress / (widget.inhaleDuration / (widget.inhaleDuration + widget.exhaleDuration)));
         } else {
-          scale = 1.5 - 0.5 * ((progress - _gapFraction) / (1 - _gapFraction));
+          // Exhale phase - contract from 1.5 to 1.0
+          scale = 1.5 - 0.5 * ((progress - widget.inhaleDuration / (widget.inhaleDuration + widget.exhaleDuration)) /
+              (widget.exhaleDuration / (widget.inhaleDuration + widget.exhaleDuration)));
         }
 
         return Transform.scale(
           scale: scale,
-          child: child,
+          child: Container(
+            height: 200,
+            width: 200,
+            decoration: BoxDecoration(
+              shape: BoxShape.circle,
+              color: Colors.blue.withOpacity(0.3),
+              border: Border.all(color: Colors.white, width: 2),
+              boxShadow: [
+                BoxShadow(
+                  color: Colors.blue.withOpacity(0.5),
+                  blurRadius: 20,
+                  spreadRadius: 10,
+                ),
+              ],
+            ),
+          ),
         );
       },
-      child: Container(
-        height: 300,
-        width: 250,
-        decoration: BoxDecoration(
-          shape: BoxShape.circle,
-          image: DecorationImage(
-            image: AssetImage(widget.imagePath),
-            fit: BoxFit.cover,
-          ),
-        ),
-      ),
     );
   }
 
   Widget _buildControlButtons() {
-    if (_isGuide1Playing || _isGuide2Playing) {
-      return const SizedBox.shrink();
-    }
-
-    if (_currentRound >= widget.rounds) {
-      return ElevatedButton(
-        onPressed: () {
-          setState(() {
-            _currentRound = 0;
-            isRunning = true;
-          });
-          _controller.reset();
-          _startBreathingCycle();
-          if (isAudioPlaying && _backgroundSound != null && _backgroundAudioPlayer.state != PlayerState.playing) {
-            debugPrint('Restarting background audio for repeat');
-            _backgroundAudioPlayer.play(_backgroundSound!);
-          }
-        },
-        style: ElevatedButton.styleFrom(
-          backgroundColor: Colors.black,
-          padding: const EdgeInsets.symmetric(horizontal: 30, vertical: 15),
-          shape: RoundedRectangleBorder(
-            borderRadius: BorderRadius.circular(30),
-          ),
-          elevation: 10,
-        ),
-        child: const Text(
-          "Repeat",
-          style: TextStyle(fontSize: 20),
-        ),
-      );
-    } else {
-      return ElevatedButton.icon(
-        onPressed: toggleBreathing,
-        style: ElevatedButton.styleFrom(
-          backgroundColor: Colors.black,
-          padding: const EdgeInsets.symmetric(horizontal: 30, vertical: 15),
-          shape: RoundedRectangleBorder(
-            borderRadius: BorderRadius.circular(30),
-          ),
-          elevation: 10,
-        ),
-        icon: Icon(isRunning ? Icons.pause : Icons.play_arrow),
-        label: Text(
-          isRunning ? "Pause" : "Start",
-          style: const TextStyle(fontSize: 20),
-        ),
-      );
-    }
-  }
-
-  Widget _buildTimeProgressBar() {
-    if (_isGuide1Playing || _isGuide2Playing) {
-      return const SizedBox.shrink();
-    }
-
-    return AnimatedBuilder(
-      animation: _controller,
-      builder: (context, child) {
-        double progress = _controller.value;
-        int totalSeconds = _controller.duration?.inSeconds ?? 1;
-        int remainingSeconds = totalSeconds - (progress * totalSeconds).toInt();
-        int minutes = remainingSeconds ~/ 60;
-        int seconds = remainingSeconds % 60;
-
-        return Column(
-          children: [
-            Padding(
-              padding: const EdgeInsets.symmetric(horizontal: 20),
-              child: LinearProgressIndicator(
-                value: 1 - progress,
-                backgroundColor: Colors.grey[800],
-                valueColor: AlwaysStoppedAnimation<Color>(Colors.teal),
-                minHeight: 6,
-              ),
-            ),
-            const SizedBox(height: 8),
-            Text(
-              '${minutes.toString().padLeft(2, '0')}:${seconds.toString().padLeft(2, '0')}',
-              style: const TextStyle(
-                color: Colors.white,
-                fontSize: 16,
-                fontWeight: FontWeight.bold,
-              ),
-            ),
-          ],
-        );
-      },
-    );
-  }
-
-  @override
-  void dispose() {
-    _controller.dispose();
-    _audioPlayer.dispose();
-    _bellPlayer.dispose();
-    _backgroundAudioPlayer.dispose();
-    _skipButtonTimer.cancel();
-    debugPrint('BilateralScreen disposed');
-    super.dispose();
-  }
-
-  @override
-  Widget build(BuildContext context) {
-    return Scaffold(
-      appBar: AppBar(
-        title: const Text(
-          "Breathing",
-          style: TextStyle(
-            color: Colors.white,
-            fontSize: 20,
-          ),
-        ),
-        centerTitle: true,
-        backgroundColor: Colors.black,
-        elevation: 0,
-        leading: IconButton(
-          icon: const Icon(Icons.arrow_back, color: Colors.white),
-          onPressed: () => Navigator.of(context).pop(),
-        ),
+    return ElevatedButton.icon(
+      onPressed: toggleBreathing,
+      style: ElevatedButton.styleFrom(
+        backgroundColor: Colors.blue[600],
+        padding: const EdgeInsets.symmetric(horizontal: 30, vertical: 15),
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(30)),
+        elevation: 10,
       ),
-      body: Stack(
-        children: [
-          Container(
-            decoration: const BoxDecoration(
-              gradient: LinearGradient(
-                colors: [Colors.black, Colors.black],
-                begin: Alignment.topLeft,
-                end: Alignment.bottomRight,
-              ),
-            ),
-            child: Center(
-              child: Column(
-                mainAxisAlignment: MainAxisAlignment.spaceAround,
-                children: [
-                  _buildTextDisplay(breathingText),
-                  const SizedBox(height: 20),
-                  _buildBreathingImage(),
-                  const SizedBox(height: 50),
-                  _buildControlButtons(),
-                  const SizedBox(height: 20),
-                  _buildTimeProgressBar(),
-                ],
-              ),
-            ),
-          ),
-          Positioned(
-            top: kToolbarHeight + 10,
-            right: 15,
-            child: IconButton(
-              icon: Icon(
-                isAudioPlaying ? Icons.music_note : Icons.music_off,
-                color: Colors.teal,
-                size: 36.0,
-              ),
-              onPressed: toggleAudio,
-            ),
-          ),
-          if (_showSkipGuide1)
-            Positioned(
-              bottom: 100,
-              right: 20,
-              child: ElevatedButton(
-                onPressed: _skipGuide1,
-                style: ElevatedButton.styleFrom(
-                  backgroundColor: Colors.black.withOpacity(0.7),
-                  shape: RoundedRectangleBorder(
-                    borderRadius: BorderRadius.circular(20),
-                  ),
-                ),
-                child: const Text(
-                  "Skip Guide",
-                  style: TextStyle(color: Colors.white),
-                ),
-              ),
-            ),
-        ],
+      icon: Icon(isRunning ? Icons.pause : Icons.play_arrow),
+      label: Text(
+        isRunning ? "Pause" : "Start",
+        style: const TextStyle(fontSize: 20),
       ),
     );
-  }
-}
-
-extension StringExtension on String {
-  String capitalize() {
-    return "${this[0].toUpperCase()}${substring(1)}";
   }
 }

@@ -1,16 +1,36 @@
 import 'package:flutter/material.dart';
-import 'package:flutter/services.dart';
+import '../start.dart'; // Assuming this is your StartScreen widget.
 import 'dart:async';
 import 'package:audioplayers/audioplayers.dart';
 
-class Abdominal46Screen extends StatefulWidget {
+void main() {
+  runApp(const AbdominalApp());
+}
+
+class AbdominalApp extends StatelessWidget {
+  const AbdominalApp({Key? key}) : super(key: key);
+
+  @override
+  Widget build(BuildContext context) {
+    return MaterialApp(
+      debugShowCheckedModeBanner: false,
+      title: 'Meditation App',
+      theme: ThemeData(
+        primarySwatch: Colors.teal,
+      ),
+      home: const AbdominalScreen(),
+    );
+  }
+}
+
+class AbdominalScreen extends StatefulWidget {
   final int inhaleDuration;
   final int exhaleDuration;
   final int rounds;
   final String imagePath;
   final String audioPath;
 
-  const Abdominal46Screen({
+  const AbdominalScreen({
     Key? key,
     this.inhaleDuration = 4,
     this.exhaleDuration = 6,
@@ -20,34 +40,90 @@ class Abdominal46Screen extends StatefulWidget {
   }) : super(key: key);
 
   @override
-  _Abdominal46ScreenState createState() => _Abdominal46ScreenState();
+  _AbdominalScreenState createState() => _AbdominalScreenState();
 }
 
-class _Abdominal46ScreenState extends State<Abdominal46Screen>
+class _AbdominalScreenState extends State<AbdominalScreen>
     with SingleTickerProviderStateMixin {
   late AnimationController _controller;
-  late Animation<double> _breathingAnimation;
-  late AudioPlayer _ambientPlayer;
+  late Animation<double> sizeTween;
+  late AudioPlayer _audioPlayer;
   late AudioPlayer _bellPlayer;
 
-  bool _isRunning = false;
-  bool _isAmbientPlaying = false;
-  int _completedRounds = 0;
-  int _totalRounds = 0;
-  bool _isInhalePhase = true;
-  String _breathPhaseText = "Prepare";
-  double _progress = 0.0;
+  bool isRunning = false;
+  bool isAudioPlaying = false;
+  int completedRounds = 0;
+  int totalRounds = 0;
+  bool lastPhaseWasInhale = false;
+
+  String breathingText = "Inhale";
 
   @override
   void initState() {
     super.initState();
-    _totalRounds = widget.rounds;
+    totalRounds = widget.rounds;
 
-    // Initialize audio players
-    _ambientPlayer = AudioPlayer();
+    // Animation setup
+    _controller = AnimationController(
+      duration: Duration(seconds: widget.inhaleDuration + widget.exhaleDuration),
+      vsync: this,
+    );
+
+    sizeTween = Tween<double>(begin: 1.0, end: 1.5).animate(
+      CurvedAnimation(
+        parent: _controller,
+        curve: const Interval(0.0, 1.0, curve: Curves.easeInOut),
+      ),
+    );
+
+    _controller.addListener(() {
+      double inhaleThreshold = widget.inhaleDuration / (widget.inhaleDuration + widget.exhaleDuration);
+
+      if (_controller.value <= inhaleThreshold && (!lastPhaseWasInhale || _controller.value < 0.01)) {
+        setState(() {
+          breathingText = "Inhale";
+          lastPhaseWasInhale = true;
+        });
+        _playBellSound();
+      } else if (_controller.value > inhaleThreshold && lastPhaseWasInhale) {
+        setState(() {
+          breathingText = "Exhale";
+          lastPhaseWasInhale = false;
+        });
+        _playBellSound();
+      }
+    });
+
+    _controller.addStatusListener((status) async {
+      if (status == AnimationStatus.completed) {
+        completedRounds++;
+
+        if (completedRounds >= totalRounds && totalRounds > 0) {
+          _controller.stop();
+          setState(() {
+            isRunning = false;
+            breathingText = "Complete";
+          });
+          return;
+        }
+
+        _controller.reset();
+        setState(() {
+          lastPhaseWasInhale = false;
+        });
+
+        await Future.delayed(const Duration(milliseconds: 5));
+
+        if (isRunning) {
+          _startBreathingCycle();
+        }
+      }
+    });
+
+    _audioPlayer = AudioPlayer();
     _bellPlayer = AudioPlayer();
 
-    // Set up audio context for simultaneous playback
+    // ✅ Set AudioContext to allow simultaneous playback
     final audioContext = AudioContext(
       iOS: AudioContextIOS(
         category: AVAudioSessionCategory.playback,
@@ -55,465 +131,272 @@ class _Abdominal46ScreenState extends State<Abdominal46Screen>
       ),
       android: AudioContextAndroid(
         isSpeakerphoneOn: true,
-        stayAwake: true,
+        stayAwake: false,
         contentType: AndroidContentType.music,
         usageType: AndroidUsageType.media,
-        audioFocus: AndroidAudioFocus.gain,
+        audioFocus: AndroidAudioFocus.none,
       ),
     );
 
-    _ambientPlayer.setAudioContext(audioContext);
+    _audioPlayer.setAudioContext(audioContext);
     _bellPlayer.setAudioContext(audioContext);
 
-    // Configure ambient sound if provided
+    // Setup players
     if (widget.audioPath.isNotEmpty) {
-      _setupAmbientSound();
+      _setupAudioPlayer();
     }
 
-    // Configure bell player
     _setupBellPlayer();
-
-    // Set up animation controller
-    _controller = AnimationController(
-      duration: Duration(seconds: widget.inhaleDuration + widget.exhaleDuration),
-      vsync: this,
-    );
-
-    // Define breathing animation
-    _breathingAnimation = Tween<double>(begin: 1.0, end: 1.6).animate(
-      CurvedAnimation(
-        parent: _controller,
-        curve: const Interval(0.0, 0.5, curve: Curves.easeInOut),
-      ),
-    );
-
-    // Add listener to update UI and play sounds at appropriate times
-    _controller.addListener(_updateBreathingState);
-
-    // Handle animation completion and round tracking
-    _controller.addStatusListener(_handleAnimationStatus);
-
-    // Start with a short delay to allow screen to fully load
-    Future.delayed(const Duration(milliseconds: 500), () {
-      setState(() {
-        _breathPhaseText = "Ready";
-      });
-    });
   }
 
-  Future<void> _setupAmbientSound() async {
+
+
+  Future<void> _setupAudioPlayer() async {
     try {
-      await _ambientPlayer.setSourceAsset(widget.audioPath);
-      await _ambientPlayer.setReleaseMode(ReleaseMode.loop);
-      await _ambientPlayer.setVolume(0.5); // Set ambient sound at 50% volume
+      await _audioPlayer.setSourceAsset(widget.audioPath);
+      await _audioPlayer.setReleaseMode(ReleaseMode.loop);
     } catch (e) {
-      debugPrint('Error setting up ambient sound: $e');
+      print('Error setting up audio player: $e');
     }
   }
 
   Future<void> _setupBellPlayer() async {
     try {
       await _bellPlayer.setReleaseMode(ReleaseMode.release);
-      await _bellPlayer.setVolume(1.0); // Bell sounds at full volume
     } catch (e) {
-      debugPrint('Error setting up bell player: $e');
+      print('Error setting up bell player: $e');
     }
   }
 
-  void _updateBreathingState() {
-    // Calculate normalized progress within the current breathing cycle
-    final cycleProgress = _controller.value;
-    final inhaleThreshold = widget.inhaleDuration / (widget.inhaleDuration + widget.exhaleDuration);
-
-    // Update the progress for UI display
-    setState(() {
-      _progress = cycleProgress;
-    });
-
-    // Handle phase transitions
-    if (cycleProgress <= inhaleThreshold) {
-      // Inhale phase
-      if (!_isInhalePhase) {
-        _isInhalePhase = true;
-        setState(() {
-          _breathPhaseText = "Inhale";
-        });
-        _playBellSound(true);
-      }
-    } else {
-      // Exhale phase
-      if (_isInhalePhase) {
-        _isInhalePhase = false;
-        setState(() {
-          _breathPhaseText = "Exhale";
-        });
-        _playBellSound(false);
-      }
-    }
-  }
-
-  void _handleAnimationStatus(AnimationStatus status) async {
-    if (status == AnimationStatus.completed) {
-      _completedRounds++;
-
-      // Check if we've completed all rounds
-      if (_completedRounds >= _totalRounds) {
-        setState(() {
-          _isRunning = false;
-          _breathPhaseText = "Complete";
-        });
-
-        // Give haptic feedback on completion
-        HapticFeedback.mediumImpact();
-
-        return;
-      }
-
-      // Reset and start next round
-      _controller.reset();
-
-      // Small delay before next round
-      await Future.delayed(const Duration(milliseconds: 300));
-
-      if (_isRunning) {
-        _controller.forward();
-      }
-    }
-  }
-
-  Future<void> _playBellSound(bool isInhale) async {
+  Future<void> _playBellSound() async {
     try {
+      // Stop any current playing to avoid overlap
       await _bellPlayer.stop();
-
-      if (isInhale) {
-        await _bellPlayer.play(AssetSource('music/inhale_bell.mp3'));
+      // Play different bell sounds for inhale and exhale
+      if (breathingText == "Inhale") {
+        await _bellPlayer.play(AssetSource('music/inhale_bell1.mp3'));
       } else {
-        await _bellPlayer.play(AssetSource('music/exhale_bell.mp3'));
+        await _bellPlayer.play(AssetSource('music/exhale_bell1.mp3'));
       }
     } catch (e) {
-      debugPrint('Error playing bell sound: $e');
+      print('Error playing bell sound: $e');
     }
   }
 
-  void _toggleExercise() {
-    HapticFeedback.lightImpact();
+  void _startBreathingCycle() {
+    _controller.forward();
+    // Play initial bell sound when starting
+    if (_controller.value < 0.01) {
+      _playBellSound();
+    }
+  }
 
-    if (_isRunning) {
+  void toggleBreathing() {
+    if (isRunning) {
       _controller.stop();
       setState(() {
-        _isRunning = false;
+        isRunning = false;
       });
     } else {
-      // If exercise was completed, reset rounds
-      if (_breathPhaseText == "Complete") {
-        setState(() {
-          _completedRounds = 0;
-          _breathPhaseText = "Inhale";
-          _isInhalePhase = true;
-        });
-        _controller.reset();
-      }
-
       setState(() {
-        _isRunning = true;
+        isRunning = true;
+        // Reset if completed
+        if (breathingText == "Complete") {
+          completedRounds = 0;
+          breathingText = "Inhale";
+          lastPhaseWasInhale = false;
+        }
       });
-
-      // Play initial bell sound
-      _playBellSound(true);
-
-      // Start animation
-      _controller.forward();
+      _startBreathingCycle();
     }
   }
 
-  Future<void> _toggleAmbientSound() async {
+  Future<void> toggleAudio() async {
     if (widget.audioPath.isEmpty) {
+      // No audio file selected
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(content: Text('No ambient sound selected')),
       );
       return;
     }
 
-    if (_isAmbientPlaying) {
-      await _ambientPlayer.pause();
+    if (isAudioPlaying) {
+      await _audioPlayer.pause();
     } else {
       try {
-        await _ambientPlayer.resume();
+        await _audioPlayer.resume();
       } catch (e) {
-        // If resume fails, try playing from the beginning
+        // Try to play if resume fails
         try {
-          await _ambientPlayer.play(AssetSource(widget.audioPath));
+          await _audioPlayer.play(AssetSource(widget.audioPath));
         } catch (e) {
-          debugPrint('Error playing ambient sound: $e');
+          print('Error playing audio: $e');
         }
       }
     }
-
     setState(() {
-      _isAmbientPlaying = !_isAmbientPlaying;
+      isAudioPlaying = !isAudioPlaying;
     });
-  }
-
-  String _getRemainingTime() {
-    final totalSeconds = _totalRounds * (widget.inhaleDuration + widget.exhaleDuration);
-    final remainingRounds = _totalRounds - _completedRounds;
-    final currentRoundRemaining = _isRunning
-        ? (1 - _controller.value) * (widget.inhaleDuration + widget.exhaleDuration)
-        : widget.inhaleDuration + widget.exhaleDuration;
-
-    final remainingSeconds = (remainingRounds - 1) * (widget.inhaleDuration + widget.exhaleDuration) + currentRoundRemaining;
-
-    final minutes = (remainingSeconds / 60).floor();
-    final seconds = (remainingSeconds % 60).floor();
-
-    return '${minutes.toString().padLeft(2, '0')}:${seconds.toString().padLeft(2, '0')}';
   }
 
   @override
   void dispose() {
-    _controller.removeListener(_updateBreathingState);
     _controller.dispose();
-    _ambientPlayer.dispose();
+    _audioPlayer.dispose();
     _bellPlayer.dispose();
     super.dispose();
+  }
+
+  String _getBreathingRatio() {
+    return "${widget.inhaleDuration}:${widget.exhaleDuration}";
   }
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: Colors.black,
       appBar: AppBar(
-        systemOverlayStyle: SystemUiOverlayStyle.light,
-        backgroundColor: Colors.transparent,
-        elevation: 0,
-        leading: IconButton(
-          icon: const Icon(Icons.arrow_back_ios_new, color: Colors.white),
-          onPressed: () => Navigator.of(context).pop(),
-        ),
         title: Text(
-          'Abdominal 4:6',
-          style: TextStyle(
-            color: Colors.blue[200],
-            fontWeight: FontWeight.w600,
-          ),
+          "Abdominal Breathing (${_getBreathingRatio()})",
+          style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 20),
         ),
+        centerTitle: true,
+        backgroundColor: Colors.blueGrey,
+        elevation: 10,
         actions: [
           if (widget.audioPath.isNotEmpty)
             IconButton(
               icon: Icon(
-                _isAmbientPlaying ? Icons.music_note : Icons.music_off,
+                isAudioPlaying ? Icons.music_note : Icons.music_off,
                 color: Colors.white,
+                size: 28.0,
               ),
-              onPressed: _toggleAmbientSound,
+              onPressed: toggleAudio,
             ),
         ],
       ),
-      extendBodyBehindAppBar: true,
-      body: Container(
-        decoration: BoxDecoration(
-          gradient: LinearGradient(
-            begin: Alignment.topCenter,
-            end: Alignment.bottomCenter,
-            colors: [
-              Colors.black,
-              Colors.blueGrey[900]!,
-              Colors.black,
-            ],
+      body: Stack(
+        children: [
+          Container(
+            decoration: const BoxDecoration(
+              gradient: LinearGradient(
+                colors: [Colors.black, Colors.black],
+                begin: Alignment.topLeft,
+                end: Alignment.bottomRight,
+              ),
+            ),
+            child: Center(
+              child: Column(
+                mainAxisAlignment: MainAxisAlignment.spaceAround,
+                children: [
+                  _buildTextDisplay(breathingText),
+                  const SizedBox(height: 20),
+                  _buildBreathingImage(),
+                  const SizedBox(height: 20),
+                  _buildProgressIndicator(),
+                  const SizedBox(height: 30),
+                  _buildControlButtons(),
+                ],
+              ),
+            ),
           ),
-        ),
-        child: SafeArea(
-          child: Column(
-            mainAxisAlignment: MainAxisAlignment.spaceEvenly,
-            children: [
-              // Breath phase text display
-              _buildBreathPhaseText(),
-
-              // Breathing visualization
-              _buildBreathingVisualization(),
-
-              // Progress display
-              _buildProgressIndicator(),
-
-              // Control buttons
-              _buildControlButtons(),
-            ],
-          ),
-        ),
+        ],
       ),
     );
   }
 
-  Widget _buildBreathPhaseText() {
-    return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 30, vertical: 15),
-      decoration: BoxDecoration(
-        color: Colors.black.withOpacity(0.3),
-        borderRadius: BorderRadius.circular(30),
-        border: Border.all(
-          color: Colors.blue.withOpacity(0.3),
-          width: 1,
-        ),
-      ),
-      child: Text(
-        _breathPhaseText,
-        style: TextStyle(
-          color: _isInhalePhase ? Colors.blue[200] : Colors.teal[200],
-          fontSize: 34,
-          fontWeight: FontWeight.w700,
-          letterSpacing: 1.0,
-        ),
-      ),
-    );
-  }
-
-  Widget _buildBreathingVisualization() {
+  Widget _buildTextDisplay(String text) {
     return AnimatedBuilder(
       animation: _controller,
       builder: (context, child) {
-        double scale;
-
-        // Calculate current scale based on the breathing phase
-        if (_isInhalePhase) {
-          final inhaleThreshold = widget.inhaleDuration / (widget.inhaleDuration + widget.exhaleDuration);
-          final phaseProgress = _progress / inhaleThreshold;
-          scale = 1.0 + (0.6 * phaseProgress);
-        } else {
-          final inhaleThreshold = widget.inhaleDuration / (widget.inhaleDuration + widget.exhaleDuration);
-          final phaseProgress = (_progress - inhaleThreshold) / (1 - inhaleThreshold);
-          scale = 1.6 - (0.6 * phaseProgress);
-        }
-
-        if (!_isRunning) {
-          scale = 1.0;
-        }
-
         return Container(
-          height: 300,
-          width: 300,
-          alignment: Alignment.center,
-          child: Stack(
-            alignment: Alignment.center,
-            children: [
-              // Outer glow
-              Container(
-                width: 260 * scale,
-                height: 260 * scale,
-                decoration: BoxDecoration(
-                  shape: BoxShape.circle,
-                  boxShadow: [
-                    BoxShadow(
-                      color: _isInhalePhase
-                          ? Colors.blue.withOpacity(0.3)
-                          : Colors.teal.withOpacity(0.3),
-                      blurRadius: 30,
-                      spreadRadius: 20,
-                    ),
-                  ],
-                ),
-              ),
-
-              // Inner breathing circle with image
-              Transform.scale(
-                scale: scale,
-                child: Container(
-                  width: 200,
-                  height: 200,
-                  decoration: BoxDecoration(
-                    shape: BoxShape.circle,
-                    image: DecorationImage(
-                      image: AssetImage(widget.imagePath),
-                      fit: BoxFit.cover,
-                    ),
-                    boxShadow: [
-                      BoxShadow(
-                        color: _isInhalePhase
-                            ? Colors.blue.withOpacity(0.7)
-                            : Colors.teal.withOpacity(0.7),
-                        blurRadius: 15,
-                        spreadRadius: 5,
-                      ),
-                    ],
-                  ),
-                ),
+          padding: const EdgeInsets.all(20),
+          decoration: BoxDecoration(
+            color: Colors.black38.withOpacity(0.7),
+            borderRadius: BorderRadius.circular(20),
+            boxShadow: const [
+              BoxShadow(
+                color: Colors.black,
+                blurRadius: 10,
+                offset: Offset(0, 4),
               ),
             ],
+          ),
+          child: Text(
+            text,
+            style: const TextStyle(
+              fontSize: 30,
+              fontWeight: FontWeight.bold,
+              color: Colors.white,
+            ),
           ),
         );
       },
     );
   }
 
+  Widget _buildBreathingImage() {
+    return RepaintBoundary(
+      child: AnimatedBuilder(
+        animation: _controller,
+        builder: (context, child) {
+          double progress = _controller.value;
+          double scale;
+          if (progress <= widget.inhaleDuration / (widget.inhaleDuration + widget.exhaleDuration)) {
+            scale = 1.0 + 0.5 * (progress / (widget.inhaleDuration / (widget.inhaleDuration + widget.exhaleDuration)));
+          } else {
+            scale = 1.5 - 0.5 * ((progress - widget.inhaleDuration / (widget.inhaleDuration + widget.exhaleDuration)) /
+                (widget.exhaleDuration / (widget.inhaleDuration + widget.exhaleDuration)));
+          }
+
+          return Transform.scale(
+            scale: scale,
+            child: child,
+          );
+        },
+        child: Container(
+          height: 150,
+          width: 250,
+          decoration: BoxDecoration(
+            shape: BoxShape.circle,
+            image: DecorationImage(
+              image: AssetImage(widget.imagePath),
+              fit: BoxFit.cover,
+            ),
+            boxShadow: [
+              BoxShadow(
+                color: Colors.red.shade600.withOpacity(0.75),
+                blurRadius: 10,
+                spreadRadius: 10,
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+
   Widget _buildProgressIndicator() {
     return Column(
       children: [
-        Row(
-          mainAxisAlignment: MainAxisAlignment.center,
-          children: [
-            Text(
-              'Round ${_completedRounds + (_isRunning ? 1 : 0)} of $_totalRounds',
-              style: TextStyle(
-                color: Colors.grey[300],
-                fontSize: 16,
-                fontWeight: FontWeight.w500,
-              ),
-            ),
-            const SizedBox(width: 20),
-            Container(
-              padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 5),
-              decoration: BoxDecoration(
-                color: Colors.black.withOpacity(0.4),
-                borderRadius: BorderRadius.circular(20),
-              ),
-              child: Text(
-                _getRemainingTime(),
-                style: TextStyle(
-                  color: Colors.grey[300],
-                  fontSize: 16,
-                  fontWeight: FontWeight.w600,
-                ),
-              ),
-            ),
-          ],
-        ),
-        const SizedBox(height: 16),
-        Container(
-          width: MediaQuery.of(context).size.width * 0.8,
-          height: 6,
-          decoration: BoxDecoration(
-            color: Colors.grey[800],
-            borderRadius: BorderRadius.circular(3),
+        Text(
+          "Round ${completedRounds + (isRunning ? 1 : 0)} of $totalRounds",
+          style: const TextStyle(
+            color: Colors.white70,
+            fontSize: 18,
+            fontWeight: FontWeight.w500,
           ),
-          child: Stack(
-            children: [
-              // Total progress bar
-              FractionallySizedBox(
-                widthFactor: _totalRounds > 0 ? _completedRounds / _totalRounds : 0,
-                child: Container(
-                  decoration: BoxDecoration(
-                    gradient: LinearGradient(
-                      colors: [Colors.blue[400]!, Colors.teal[400]!],
-                    ),
-                    borderRadius: BorderRadius.circular(3),
-                  ),
-                ),
-              ),
-              // Current round progress indicator
-              if (_isRunning && _totalRounds > 0)
-                Positioned(
-                  left: (_completedRounds / _totalRounds) *
-                      MediaQuery.of(context).size.width * 0.8,
-                  child: FractionallySizedBox(
-                    widthFactor: (1 / _totalRounds) * _progress,
-                    child: Container(
-                      height: 6,
-                      decoration: BoxDecoration(
-                        color: _isInhalePhase ? Colors.blue[400] : Colors.teal[400],
-                        borderRadius: BorderRadius.circular(3),
-                      ),
-                    ),
-                  ),
-                ),
-            ],
+        ),
+        const SizedBox(height: 10),
+        SizedBox(
+          width: 250,
+          child: ClipRRect(
+            borderRadius: BorderRadius.circular(10),
+            child: LinearProgressIndicator(
+              value: totalRounds > 0 ? (completedRounds / totalRounds) : 0,
+              backgroundColor: Colors.grey.withOpacity(0.3),
+              valueColor: AlwaysStoppedAnimation<Color>(Colors.teal),
+              minHeight: 10,
+            ),
           ),
         ),
       ],
@@ -521,33 +404,19 @@ class _Abdominal46ScreenState extends State<Abdominal46Screen>
   }
 
   Widget _buildControlButtons() {
-    return Row(
-      mainAxisAlignment: MainAxisAlignment.center,
-      children: [
-        ElevatedButton.icon(
-          onPressed: _toggleExercise,
-          style: ElevatedButton.styleFrom(
-            backgroundColor: _isRunning ? Colors.teal[600] : Colors.blue[600],
-            foregroundColor: Colors.white,
-            padding: const EdgeInsets.symmetric(horizontal: 32, vertical: 16),
-            shape: RoundedRectangleBorder(
-              borderRadius: BorderRadius.circular(30),
-            ),
-            elevation: 5,
-            shadowColor: _isRunning ? Colors.teal[300] : Colors.blue[300],
-          ),
-          icon: Icon(_isRunning ? Icons.pause : Icons.play_arrow, size: 30),
-          label: Text(
-            _isRunning ? 'PAUSE' :
-            (_breathPhaseText == "Complete" ? 'RESTART' : 'START'),
-            style: const TextStyle(
-              fontSize: 18,
-              fontWeight: FontWeight.bold,
-              letterSpacing: 1.2,
-            ),
-          ),
-        ),
-      ],
+    return ElevatedButton.icon(
+      onPressed: toggleBreathing,
+      style: ElevatedButton.styleFrom(
+        backgroundColor: Colors.teal,
+        padding: const EdgeInsets.symmetric(horizontal: 30, vertical: 15),
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(30)),
+        elevation: 10,
+      ),
+      icon: Icon(isRunning ? Icons.pause : Icons.play_arrow),
+      label: Text(
+        isRunning ? "Pause" : (completedRounds >= totalRounds && totalRounds > 0) ? "Restart" : "Start",
+        style: const TextStyle(fontSize: 20),
+      ),
     );
   }
 }

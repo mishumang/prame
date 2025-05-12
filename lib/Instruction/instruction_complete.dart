@@ -487,6 +487,8 @@ class _CompleteBreathingPageState extends State<CompleteBreathingPage> {
                 rounds: rounds,
                 imagePath: _selectedImage,
                 audioPath: audioPath,
+                inhaleAudioPath: 'music/inhale.mp3',
+                exhaleAudioPath: 'music/exhale.mp3',
               ),
               transitionsBuilder: (_, anim, __, child) =>
                   FadeTransition(opacity: anim, child: child),
