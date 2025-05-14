@@ -13,13 +13,13 @@ class BilateralScreen extends StatefulWidget {
 
   const BilateralScreen({
     Key? key,
-    required this.inhaleDuration,
-    required this.exhaleDuration,
-    required this.rounds,
-    required this.imagePath,
-    required this.audioPath,
-    this.inhaleAudioPath = 'assets/music/inhale_bell1.mp3', // Default value added
-    this.exhaleAudioPath = 'assets/music/exhale_bell1.mp3', // Default value added
+    this.inhaleDuration = 4,
+    this.exhaleDuration = 6,
+    this.rounds = 5,
+    this.imagePath = 'assets/images/option3.png',
+    this.audioPath = '',
+    this.inhaleAudioPath = 'assets/music/inhale_bell1.mp3',
+    this.exhaleAudioPath = 'assets/music/exhale_bell1.mp3',
   }) : super(key: key);
 
   @override
@@ -30,32 +30,21 @@ class _BilateralScreenState extends State<BilateralScreen>
     with SingleTickerProviderStateMixin {
   late AnimationController _controller;
   late Animation<double> sizeTween;
-  late AudioPlayer _ambientPlayer;
-  late AudioPlayer _inhalePlayer;  // Separate player for inhale sound
-  late AudioPlayer _exhalePlayer;  // Separate player for exhale sound
+  late AudioPlayer _audioPlayer;
+  late AudioPlayer _bellPlayer;
 
-  int _countdown = 3;
-  bool _isCountingDown = true;
   bool isRunning = false;
-  bool isAudioPlaying = true;
-  int currentRound = 0;
+  bool isAudioPlaying = false;
+  int completedRounds = 0;
+  int totalRounds = 0;
+  bool lastPhaseWasInhale = false;
 
-  String breathingText = "Get Ready";
-  Timer? _countdownTimer;
-  Timer? _phaseTimer;
+  String breathingText = "Inhale";
 
   @override
   void initState() {
     super.initState();
-
-    _ambientPlayer = AudioPlayer()..setVolume(1.0); // Slightly lower volume for ambient
-    _inhalePlayer = AudioPlayer()..setVolume(0.5);  // Full volume for bells
-    _exhalePlayer = AudioPlayer()..setVolume(0.5);
-    // Preload audio files to reduce latency
-    _preloadAudio();
-
-    // Start countdown
-    _startCountdown();
+    totalRounds = widget.rounds;
 
     // Animation setup
     _controller = AnimationController(
@@ -71,193 +60,161 @@ class _BilateralScreenState extends State<BilateralScreen>
     );
 
     _controller.addListener(() {
-      setState(() {
-        double totalDuration = widget.inhaleDuration.toDouble() + widget.exhaleDuration.toDouble();
-        double inhalePortion = widget.inhaleDuration.toDouble() / totalDuration;
+      double inhaleThreshold = widget.inhaleDuration / (widget.inhaleDuration + widget.exhaleDuration);
 
-        if (_controller.value <= inhalePortion) {
+      if (_controller.value <= inhaleThreshold && (!lastPhaseWasInhale || _controller.value < 0.01)) {
+        setState(() {
           breathingText = "Inhale";
-        } else {
+          lastPhaseWasInhale = true;
+        });
+        _playBellSound();
+      } else if (_controller.value > inhaleThreshold && lastPhaseWasInhale) {
+        setState(() {
           breathingText = "Exhale";
-        }
-      });
+          lastPhaseWasInhale = false;
+        });
+        _playBellSound();
+      }
     });
 
     _controller.addStatusListener((status) async {
       if (status == AnimationStatus.completed) {
-        currentRound++;
-        if (currentRound >= widget.rounds) {
-          // Session completed
+        completedRounds++;
+
+        if (completedRounds >= totalRounds && totalRounds > 0) {
+          _controller.stop();
           setState(() {
-            breathingText = "Session Complete";
             isRunning = false;
+            breathingText = "Complete";
           });
           return;
         }
 
         _controller.reset();
+        setState(() {
+          lastPhaseWasInhale = false;
+        });
+
         await Future.delayed(const Duration(milliseconds: 5));
+
         if (isRunning) {
           _startBreathingCycle();
         }
       }
     });
+
+    _audioPlayer = AudioPlayer();
+    _bellPlayer = AudioPlayer();
+
+    // Set AudioContext to allow simultaneous playback
+    final audioContext = AudioContext(
+      iOS: AudioContextIOS(
+        category: AVAudioSessionCategory.playback,
+        options: {AVAudioSessionOptions.mixWithOthers},
+      ),
+      android: AudioContextAndroid(
+        isSpeakerphoneOn: true,
+        stayAwake: false,
+        contentType: AndroidContentType.music,
+        usageType: AndroidUsageType.media,
+        audioFocus: AndroidAudioFocus.none,
+      ),
+    );
+
+    _audioPlayer.setAudioContext(audioContext);
+    _bellPlayer.setAudioContext(audioContext);
+
+    // Setup players
+    if (widget.audioPath.isNotEmpty) {
+      _setupAudioPlayer();
+    }
+
+    _setupBellPlayer();
   }
 
-  // Preload audio to reduce latency
-  Future<void> _preloadAudio() async {
+  Future<void> _setupAudioPlayer() async {
     try {
-      await _inhalePlayer.setSource(AssetSource(widget.inhaleAudioPath));
-      await _exhalePlayer.setSource(AssetSource(widget.exhaleAudioPath));
-      debugPrint('Audio files preloaded successfully');
+      await _audioPlayer.setSourceAsset(widget.audioPath);
+      await _audioPlayer.setReleaseMode(ReleaseMode.loop);
     } catch (e) {
-      debugPrint('Error preloading audio: $e');
+      print('Error setting up audio player: $e');
     }
   }
 
-  void _startCountdown() {
-    setState(() {
-      _isCountingDown = true;
-      _countdown = 3;
-      breathingText = "$_countdown";
-    });
+  Future<void> _setupBellPlayer() async {
+    try {
+      await _bellPlayer.setReleaseMode(ReleaseMode.release);
+    } catch (e) {
+      print('Error setting up bell player: $e');
+    }
+  }
 
-    _countdownTimer = Timer.periodic(const Duration(seconds: 1), (timer) {
-      setState(() {
-        if (_countdown > 1) {
-          _countdown--;
-          breathingText = "$_countdown";
-        } else {
-          _countdownTimer?.cancel();
-          _isCountingDown = false;
-          isRunning = true;
-          _playAmbientSound();
-          _startBreathingCycle();
-        }
-      });
-    });
+  Future<void> _playBellSound() async {
+    try {
+      // Stop any current playing to avoid overlap
+      await _bellPlayer.stop();
+      // Play different bell sounds for inhale and exhale
+      if (breathingText == "Inhale") {
+        await _bellPlayer.play(AssetSource(widget.inhaleAudioPath));
+      } else {
+        await _bellPlayer.play(AssetSource(widget.exhaleAudioPath));
+      }
+    } catch (e) {
+      print('Error playing bell sound: $e');
+    }
   }
 
   void _startBreathingCycle() {
-    if (isRunning) {
-      // Cancel any existing phase timer
-      _phaseTimer?.cancel();
-
-      // Play inhale bell immediately
-      _playInhaleBell();
-
-      // Start the animation
-      _controller.forward(from: 0.0);
-
-      // Schedule exhale bell sound using a timer instead of relying on animation
-      _phaseTimer = Timer(Duration(seconds: widget.inhaleDuration), () {
-        if (isRunning) {
-          _playExhaleBell();
-        }
-      });
-    }
-  }
-
-  Future<void> _playInhaleBell() async {
-    try {
-      debugPrint('Playing inhale bell');
-      // Always reset position and play from the beginning
-      await _inhalePlayer.play(AssetSource(widget.inhaleAudioPath));
-    } catch (e) {
-      debugPrint('Error playing inhale bell: $e');
-    }
-  }
-
-  Future<void> _playExhaleBell() async {
-    try {
-      debugPrint('Playing exhale bell');
-      // Always reset position and play from the beginning
-      await _exhalePlayer.play(AssetSource(widget.exhaleAudioPath));
-
-    } catch (e) {
-      debugPrint('Error playing exhale bell: $e');
-
-    }
-  }
-
-  Future<void> _playAmbientSound() async {
-    if (isAudioPlaying && widget.audioPath.isNotEmpty) {
-      try {
-        await _ambientPlayer.play(AssetSource(widget.audioPath));
-        await _ambientPlayer.setReleaseMode(ReleaseMode.loop);
-      } catch (e) {
-        debugPrint('Error playing ambient sound: $e');
-      }
+    _controller.forward();
+    // Play initial bell sound when starting
+    if (_controller.value < 0.01) {
+      _playBellSound();
     }
   }
 
   void toggleBreathing() {
-    if (_isCountingDown) {
-      _countdownTimer?.cancel();
-      _phaseTimer?.cancel();
-      setState(() {
-        _isCountingDown = false;
-        isRunning = false;
-        breathingText = "Paused";
-      });
-      return;
-    }
-
     if (isRunning) {
       _controller.stop();
-      _ambientPlayer.pause();
-      _phaseTimer?.cancel();
       setState(() {
         isRunning = false;
-        breathingText = "Paused";
       });
     } else {
       setState(() {
         isRunning = true;
-        if (_controller.value > 0) {
-          _controller.forward();
-          if (isAudioPlaying && widget.audioPath.isNotEmpty) {
-            _ambientPlayer.resume();
-          }
-
-          // If we're in the exhale phase and resuming
-          double totalDuration = widget.inhaleDuration.toDouble() + widget.exhaleDuration.toDouble();
-          double inhalePortion = widget.inhaleDuration.toDouble() / totalDuration;
-
-          if (_controller.value > inhalePortion) {
-            // We're in the exhale phase, schedule the next inhale
-            double remainingExhaleTime = (1 - _controller.value) * totalDuration;
-            _phaseTimer = Timer(Duration(milliseconds: (remainingExhaleTime * 1000).round()), () {
-              if (isRunning) {
-                // This will be called when the current cycle completes
-              }
-            });
-          } else {
-            // We're in the inhale phase, schedule the exhale
-            double remainingInhaleTime = (inhalePortion - _controller.value) * totalDuration;
-            _phaseTimer = Timer(Duration(milliseconds: (remainingInhaleTime * 1000).round()), () {
-              if (isRunning) {
-                _playExhaleBell();
-              }
-            });
-          }
-        } else {
-          _startBreathingCycle();
-          if (isAudioPlaying && widget.audioPath.isNotEmpty) {
-            _playAmbientSound();
-          }
+        // Reset if completed
+        if (breathingText == "Complete") {
+          completedRounds = 0;
+          breathingText = "Inhale";
+          lastPhaseWasInhale = false;
         }
       });
+      _startBreathingCycle();
     }
   }
 
   Future<void> toggleAudio() async {
-    if (isAudioPlaying) {
-      await _ambientPlayer.pause();
-    } else if (isRunning && widget.audioPath.isNotEmpty) {
-      await _ambientPlayer.resume();
+    if (widget.audioPath.isEmpty) {
+      // No audio file selected
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('No ambient sound selected')),
+      );
+      return;
     }
 
+    if (isAudioPlaying) {
+      await _audioPlayer.pause();
+    } else {
+      try {
+        await _audioPlayer.resume();
+      } catch (e) {
+        // Try to play if resume fails
+        try {
+          await _audioPlayer.play(AssetSource(widget.audioPath));
+        } catch (e) {
+          print('Error playing audio: $e');
+        }
+      }
+    }
     setState(() {
       isAudioPlaying = !isAudioPlaying;
     });
@@ -266,12 +223,13 @@ class _BilateralScreenState extends State<BilateralScreen>
   @override
   void dispose() {
     _controller.dispose();
-    _ambientPlayer.dispose();
-    _inhalePlayer.dispose();
-    _exhalePlayer.dispose();
-    _countdownTimer?.cancel();
-    _phaseTimer?.cancel();
+    _audioPlayer.dispose();
+    _bellPlayer.dispose();
     super.dispose();
+  }
+
+  String _getBreathingRatio() {
+    return "${widget.inhaleDuration}:${widget.exhaleDuration}";
   }
 
   @override
@@ -279,98 +237,47 @@ class _BilateralScreenState extends State<BilateralScreen>
     return Scaffold(
       appBar: AppBar(
         title: Text(
-          "Breathing Session (${widget.inhaleDuration}:${widget.exhaleDuration})",
-          style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold),
+          "Bilateral Breathing (${_getBreathingRatio()})",
+          style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 20),
         ),
         centerTitle: true,
         backgroundColor: Colors.blueGrey,
         elevation: 10,
-        leading: IconButton(
-          icon: const Icon(Icons.arrow_back),
-          onPressed: () => Navigator.of(context).pop(),
-        ),
-      ),
-      body: Stack(
-        children: [
-          // Background image
-          Positioned.fill(
-            child: Image.asset(
-              widget.imagePath,
-              fit: BoxFit.cover,
-            ),
-          ),
-          // Dark overlay
-          Positioned.fill(
-            child: Container(
-              color: Colors.black.withOpacity(0.5),
-            ),
-          ),
-          Center(
-            child: Column(
-              mainAxisAlignment: MainAxisAlignment.spaceAround,
-              children: [
-                _buildTextDisplay(breathingText),
-                const SizedBox(height: 20),
-                _isCountingDown
-                    ? _buildCountdownDisplay()
-                    : _buildBreathingAnimation(),
-                const SizedBox(height: 50),
-                _buildControlButtons(),
-              ],
-            ),
-          ),
-          Positioned(
-            top: kToolbarHeight + 10,
-            right: 15,
-            child: IconButton(
+        actions: [
+          if (widget.audioPath.isNotEmpty)
+            IconButton(
               icon: Icon(
-                isAudioPlaying ? Icons.volume_up : Icons.volume_off,
+                isAudioPlaying ? Icons.music_note : Icons.music_off,
                 color: Colors.white,
-                size: 36.0,
+                size: 28.0,
               ),
               onPressed: toggleAudio,
             ),
-          ),
-          // Session progress indicator
-          Positioned(
-            bottom: 20,
-            left: 0,
-            right: 0,
-            child: Center(
-              child: Text(
-                "Round: ${currentRound + 1}/${widget.rounds}",
-                style: const TextStyle(
-                  fontSize: 18,
-                  fontWeight: FontWeight.bold,
-                  color: Colors.white,
-                ),
+        ],
+      ),
+      body: Stack(
+        children: [
+          Container(
+            decoration: const BoxDecoration(
+              gradient: LinearGradient(
+                colors: [Colors.black, Colors.black],
+                begin: Alignment.topLeft,
+                end: Alignment.bottomRight,
               ),
             ),
-          ),
-          // Debug button for testing bell sounds (can be removed in production)
-          Positioned(
-            top: kToolbarHeight + 10,
-            left: 15,
-            child: Row(
-              children: [
-                ElevatedButton(
-                  onPressed: _playInhaleBell,
-                  style: ElevatedButton.styleFrom(
-                    backgroundColor: Colors.green,
-                    padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
-                  ),
-                  child: const Text("Test Inhale Bell", style: TextStyle(fontSize: 10)),
-                ),
-                const SizedBox(width: 5),
-                ElevatedButton(
-                  onPressed: _playExhaleBell,
-                  style: ElevatedButton.styleFrom(
-                    backgroundColor: Colors.blue,
-                    padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
-                  ),
-                  child: const Text("Test Exhale Bell", style: TextStyle(fontSize: 10)),
-                ),
-              ],
+            child: Center(
+              child: Column(
+                mainAxisAlignment: MainAxisAlignment.spaceAround,
+                children: [
+                  _buildTextDisplay(breathingText),
+                  const SizedBox(height: 20),
+                  _buildBreathingImage(),
+                  const SizedBox(height: 20),
+                  _buildProgressIndicator(),
+                  const SizedBox(height: 30),
+                  _buildControlButtons(),
+                ],
+              ),
             ),
           ),
         ],
@@ -379,85 +286,28 @@ class _BilateralScreenState extends State<BilateralScreen>
   }
 
   Widget _buildTextDisplay(String text) {
-    return Container(
-      padding: const EdgeInsets.all(20),
-      decoration: BoxDecoration(
-        color: Colors.black38.withOpacity(0.7),
-        borderRadius: BorderRadius.circular(20),
-        boxShadow: const [
-          BoxShadow(
-            color: Colors.black26,
-            blurRadius: 10,
-            offset: Offset(0, 4),
-          ),
-        ],
-      ),
-      child: Text(
-        text,
-        style: const TextStyle(
-          fontSize: 36,
-          fontWeight: FontWeight.bold,
-          color: Colors.white,
-        ),
-      ),
-    );
-  }
-
-  Widget _buildCountdownDisplay() {
-    return Container(
-      height: 200,
-      width: 200,
-      decoration: BoxDecoration(
-        color: Colors.blue.withOpacity(0.3),
-        shape: BoxShape.circle,
-        border: Border.all(color: Colors.white, width: 2),
-      ),
-      child: Center(
-        child: Text(
-          _countdown.toString(),
-          style: const TextStyle(
-            fontSize: 80,
-            fontWeight: FontWeight.bold,
-            color: Colors.white,
-          ),
-        ),
-      ),
-    );
-  }
-
-  Widget _buildBreathingAnimation() {
     return AnimatedBuilder(
       animation: _controller,
       builder: (context, child) {
-        double progress = _controller.value;
-        double scale;
-
-        // Calculate scale based on breathing phase
-        if (progress <= widget.inhaleDuration / (widget.inhaleDuration + widget.exhaleDuration)) {
-          // Inhale phase - expand from 1.0 to 1.5
-          scale = 1.0 + 0.5 * (progress / (widget.inhaleDuration / (widget.inhaleDuration + widget.exhaleDuration)));
-        } else {
-          // Exhale phase - contract from 1.5 to 1.0
-          scale = 1.5 - 0.5 * ((progress - widget.inhaleDuration / (widget.inhaleDuration + widget.exhaleDuration)) /
-              (widget.exhaleDuration / (widget.inhaleDuration + widget.exhaleDuration)));
-        }
-
-        return Transform.scale(
-          scale: scale,
-          child: Container(
-            height: 200,
-            width: 200,
-            decoration: BoxDecoration(
-              shape: BoxShape.circle,
-              color: Colors.blue.withOpacity(0.3),
-              border: Border.all(color: Colors.white, width: 2),
-              boxShadow: [
-                BoxShadow(
-                  color: Colors.blue.withOpacity(0.5),
-                  blurRadius: 20,
-                  spreadRadius: 10,
-                ),
-              ],
+        return Container(
+          padding: const EdgeInsets.all(20),
+          decoration: BoxDecoration(
+            color: Colors.black38.withOpacity(0.7),
+            borderRadius: BorderRadius.circular(20),
+            boxShadow: const [
+              BoxShadow(
+                color: Colors.black,
+                blurRadius: 10,
+                offset: Offset(0, 4),
+              ),
+            ],
+          ),
+          child: Text(
+            text,
+            style: const TextStyle(
+              fontSize: 30,
+              fontWeight: FontWeight.bold,
+              color: Colors.white,
             ),
           ),
         );
@@ -465,18 +315,87 @@ class _BilateralScreenState extends State<BilateralScreen>
     );
   }
 
+  Widget _buildBreathingImage() {
+    return RepaintBoundary(
+      child: AnimatedBuilder(
+        animation: _controller,
+        builder: (context, child) {
+          double progress = _controller.value;
+          double scale;
+          if (progress <= widget.inhaleDuration / (widget.inhaleDuration + widget.exhaleDuration)) {
+            scale = 1.0 + 0.5 * (progress / (widget.inhaleDuration / (widget.inhaleDuration + widget.exhaleDuration)));
+          } else {
+            scale = 1.5 - 0.5 * ((progress - widget.inhaleDuration / (widget.inhaleDuration + widget.exhaleDuration)) /
+                (widget.exhaleDuration / (widget.inhaleDuration + widget.exhaleDuration)));
+          }
+
+          return Transform.scale(
+            scale: scale,
+            child: child,
+          );
+        },
+        child: Container(
+          height: 150,
+          width: 250,
+          decoration: BoxDecoration(
+            shape: BoxShape.circle,
+            image: DecorationImage(
+              image: AssetImage(widget.imagePath),
+              fit: BoxFit.cover,
+            ),
+            boxShadow: [
+              BoxShadow(
+                color: Colors.blue.shade600.withOpacity(0.75),
+                blurRadius: 10,
+                spreadRadius: 10,
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+
+  Widget _buildProgressIndicator() {
+    return Column(
+      children: [
+        Text(
+          "Round ${completedRounds + (isRunning ? 1 : 0)} of $totalRounds",
+          style: const TextStyle(
+            color: Colors.white70,
+            fontSize: 18,
+            fontWeight: FontWeight.w500,
+          ),
+        ),
+        const SizedBox(height: 10),
+        SizedBox(
+          width: 250,
+          child: ClipRRect(
+            borderRadius: BorderRadius.circular(10),
+            child: LinearProgressIndicator(
+              value: totalRounds > 0 ? (completedRounds / totalRounds) : 0,
+              backgroundColor: Colors.grey.withOpacity(0.3),
+              valueColor: AlwaysStoppedAnimation<Color>(Colors.blue),
+              minHeight: 10,
+            ),
+          ),
+        ),
+      ],
+    );
+  }
+
   Widget _buildControlButtons() {
     return ElevatedButton.icon(
       onPressed: toggleBreathing,
       style: ElevatedButton.styleFrom(
-        backgroundColor: Colors.blue[600],
+        backgroundColor: Colors.blue,
         padding: const EdgeInsets.symmetric(horizontal: 30, vertical: 15),
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(30)),
         elevation: 10,
       ),
       icon: Icon(isRunning ? Icons.pause : Icons.play_arrow),
       label: Text(
-        isRunning ? "Pause" : "Start",
+        isRunning ? "Pause" : (completedRounds >= totalRounds && totalRounds > 0) ? "Restart" : "Start",
         style: const TextStyle(fontSize: 20),
       ),
     );

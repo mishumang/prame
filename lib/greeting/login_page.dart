@@ -116,7 +116,8 @@ class _LoginPageState extends State<LoginPage> with SingleTickerProviderStateMix
                     child: Hero(
                       tag: 'app_logo',
                       child: Container(
-                        padding: const EdgeInsets.all(15),
+                        width: 150,
+                        height: 150,
                         decoration: BoxDecoration(
                           color: Colors.white,
                           shape: BoxShape.circle,
@@ -128,9 +129,13 @@ class _LoginPageState extends State<LoginPage> with SingleTickerProviderStateMix
                             ),
                           ],
                         ),
-                        child: Image.asset(
-                          'assets/images/blue_lotus.png',
-                          height: 120,
+                        child: ClipOval(
+                          child: Image.asset(
+                            'assets/images/yoga_app.jpg',
+                            fit: BoxFit.cover,
+                            width: 130,
+                            height: 130,
+                          ),
                         ),
                       ),
                     ),
@@ -145,7 +150,7 @@ class _LoginPageState extends State<LoginPage> with SingleTickerProviderStateMix
                       style: TextStyle(
                         fontSize: 28,
                         fontWeight: FontWeight.bold,
-                        color: Color(0xFF5E35B1),
+                        color: Color(0xFF00695C),
                       ),
                     ),
                   ),
@@ -176,7 +181,7 @@ class _LoginPageState extends State<LoginPage> with SingleTickerProviderStateMix
                         hintStyle: TextStyle(color: Colors.grey[400]),
                         prefixIcon: const Icon(
                           Icons.email_outlined,
-                          color: Color(0xFF5E35B1),
+                          color: Color(0xFF009688),
                         ),
                         border: InputBorder.none,
                       ),
@@ -196,14 +201,14 @@ class _LoginPageState extends State<LoginPage> with SingleTickerProviderStateMix
                         hintStyle: TextStyle(color: Colors.grey[400]),
                         prefixIcon: const Icon(
                           Icons.lock_outline,
-                          color: Color(0xFF5E35B1),
+                          color: Color(0xFF009688),
                         ),
                         suffixIcon: IconButton(
                           icon: Icon(
                             _isPasswordVisible
                                 ? Icons.visibility_off
                                 : Icons.visibility,
-                            color: const Color(0xFF5E35B1),
+                            color: const Color(0xFF009688),
                           ),
                           onPressed: () {
                             setState(() {
@@ -224,7 +229,7 @@ class _LoginPageState extends State<LoginPage> with SingleTickerProviderStateMix
                         child: const Text(
                           "Skip Login",
                           style: TextStyle(
-                            color: Color(0xFF5E35B1),
+                            color: Color(0xFF26A69A),
                             fontWeight: FontWeight.w600,
                           ),
                         ),
@@ -236,7 +241,7 @@ class _LoginPageState extends State<LoginPage> with SingleTickerProviderStateMix
                         child: const Text(
                           "Forgot Password?",
                           style: TextStyle(
-                            color: Color(0xFF5E35B1),
+                            color: Color(0xFF26A69A),
                             fontWeight: FontWeight.w600,
                           ),
                         ),
@@ -248,7 +253,8 @@ class _LoginPageState extends State<LoginPage> with SingleTickerProviderStateMix
 
                   // Login Button
                   _isSubmitting
-                      ? const Center(child: CircularProgressIndicator(color: Color(0xFF5E35B1)))
+                      ? const Center(child: CircularProgressIndicator(color: Color(
+                      0xFF00FD7F)))
                       : _buildGradientButton(
                     onPressed: _handleLogin,
                     child: const Text(
@@ -348,7 +354,7 @@ class _LoginPageState extends State<LoginPage> with SingleTickerProviderStateMix
                             TextSpan(
                               text: "Sign Up",
                               style: TextStyle(
-                                color: Color(0xFF5E35B1),
+                                color: Color(0xFF26A69A),
                                 fontWeight: FontWeight.bold,
                               ),
                             ),
@@ -395,13 +401,13 @@ class _LoginPageState extends State<LoginPage> with SingleTickerProviderStateMix
       decoration: BoxDecoration(
         borderRadius: BorderRadius.circular(15),
         gradient: const LinearGradient(
-          colors: [Color(0xFF7E57C2), Color(0xFF5E35B1)],
+          colors: [Color(0xFF009688), Color(0xFF0050FD)],
           begin: Alignment.centerLeft,
           end: Alignment.centerRight,
         ),
         boxShadow: [
           BoxShadow(
-            color: const Color(0xFF5E35B1).withOpacity(0.3),
+            color: const Color(0xFF009688).withOpacity(0.3),
             blurRadius: 15,
             offset: const Offset(0, 8),
           ),

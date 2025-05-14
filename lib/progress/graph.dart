@@ -4,6 +4,16 @@ import 'package:table_calendar/table_calendar.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 
+// Color Constants
+class AppColors {
+  static const Color primary = Color(0xFF00695C); // Green accent color from the flower button
+  static const Color primaryLight = Color(0xFF00695C);
+  static const Color primaryDark = Color(0xFF4DB6AC);
+  static const Color background = Color(0xFFF0F4F8);
+  static const Color textDark = Color(0xFF1F2937);
+  static const Color textLight = Color(0xFF6B7280);
+}
+
 class ProgressScreen extends StatefulWidget {
   @override
   _ProgressScreenState createState() => _ProgressScreenState();
@@ -79,7 +89,7 @@ class _ProgressScreenState extends State<ProgressScreen> {
       ..sort((a, b) => a.key.compareTo(b.key));
 
     return Scaffold(
-      backgroundColor: Colors.grey[50],
+      backgroundColor: AppColors.background,
       body: CustomScrollView(
         slivers: [
           SliverAppBar(
@@ -89,8 +99,8 @@ class _ProgressScreenState extends State<ProgressScreen> {
                 decoration: BoxDecoration(
                   gradient: LinearGradient(
                     colors: [
-                      Color(0xFF304674),
-                      Color(0xFF536AB7),
+                      AppColors.primary,
+                      AppColors.primaryDark,
                     ],
                     begin: Alignment.topLeft,
                     end: Alignment.bottomRight,
@@ -182,8 +192,8 @@ class _ProgressScreenState extends State<ProgressScreen> {
             shape: BoxShape.circle,
             gradient: LinearGradient(
               colors: [
-                Color(0xFF98BAD5),
-                Color(0xFF304674),
+                AppColors.primary,
+                AppColors.primaryDark,
               ],
               begin: Alignment.topLeft,
               end: Alignment.bottomRight,
@@ -197,14 +207,14 @@ class _ProgressScreenState extends State<ProgressScreen> {
           style: TextStyle(
             fontSize: 18,
             fontWeight: FontWeight.bold,
-            color: Colors.grey[800],
+            color: AppColors.textDark,
           ),
         ),
         Text(
           label,
           style: TextStyle(
             fontSize: 14,
-            color: Colors.grey[600],
+            color: AppColors.textLight,
           ),
         ),
       ],
@@ -230,14 +240,14 @@ class _ProgressScreenState extends State<ProgressScreen> {
         children: [
           Row(
             children: [
-              Icon(Icons.calendar_month, color: Color(0xFF304674)),
+              Icon(Icons.calendar_month, color: AppColors.primary),
               SizedBox(width: 8),
               Text(
                 "Activity Calendar",
                 style: TextStyle(
                   fontSize: 18,
                   fontWeight: FontWeight.bold,
-                  color: Colors.grey[800],
+                  color: AppColors.textDark,
                 ),
               ),
             ],
@@ -255,34 +265,34 @@ class _ProgressScreenState extends State<ProgressScreen> {
             },
             calendarStyle: CalendarStyle(
               selectedDecoration: BoxDecoration(
-                color: Color(0xFF304674),
+                color: AppColors.primaryDark,
                 shape: BoxShape.circle,
               ),
               todayDecoration: BoxDecoration(
-                color: Color(0xFF98BAD5),
+                color: AppColors.primaryLight.withOpacity(0.5),
                 shape: BoxShape.circle,
               ),
               markerDecoration: BoxDecoration(
-                color: Color(0xFF304674),
+                color: AppColors.primary,
                 shape: BoxShape.circle,
               ),
-              defaultTextStyle: TextStyle(color: Colors.grey[800]),
-              weekendTextStyle: TextStyle(color: Colors.grey[800]),
+              defaultTextStyle: TextStyle(color: AppColors.textDark),
+              weekendTextStyle: TextStyle(color: AppColors.textDark),
             ),
             headerStyle: HeaderStyle(
               formatButtonVisible: false,
               titleCentered: true,
               titleTextStyle: TextStyle(
-                color: Colors.grey[800],
+                color: AppColors.textDark,
                 fontSize: 16,
                 fontWeight: FontWeight.w600,
               ),
-              leftChevronIcon: Icon(Icons.chevron_left, color: Color(0xFF304674)),
-              rightChevronIcon: Icon(Icons.chevron_right, color: Color(0xFF304674)),
+              leftChevronIcon: Icon(Icons.chevron_left, color: AppColors.primaryDark),
+              rightChevronIcon: Icon(Icons.chevron_right, color: AppColors.primaryDark),
             ),
             daysOfWeekStyle: DaysOfWeekStyle(
-              weekdayStyle: TextStyle(color: Colors.grey[600]),
-              weekendStyle: TextStyle(color: Colors.grey[600]),
+              weekdayStyle: TextStyle(color: AppColors.textLight),
+              weekendStyle: TextStyle(color: AppColors.textLight),
             ),
             eventLoader: (date) => markedDates[date] ?? [],
             calendarBuilders: CalendarBuilders(
@@ -293,13 +303,13 @@ class _ProgressScreenState extends State<ProgressScreen> {
                   return Container(
                     margin: const EdgeInsets.all(4.0),
                     decoration: BoxDecoration(
-                      color: Color(0xFF304674).withOpacity(0.2),
+                      color: AppColors.primary.withOpacity(0.2),
                       shape: BoxShape.circle,
                     ),
                     child: Center(
                       child: Text(
                         '${date.day}',
-                        style: TextStyle(color: Color(0xFF304674), fontWeight: FontWeight.bold),
+                        style: TextStyle(color: AppColors.primary, fontWeight: FontWeight.bold),
                       ),
                     ),
                   );
@@ -335,14 +345,14 @@ class _ProgressScreenState extends State<ProgressScreen> {
         children: [
           Row(
             children: [
-              Icon(Icons.info_outline, color: Color(0xFF304674)),
+              Icon(Icons.info_outline, color: AppColors.primary),
               SizedBox(width: 8),
               Text(
                 "Selected Day Summary",
                 style: TextStyle(
                   fontSize: 18,
                   fontWeight: FontWeight.bold,
-                  color: Colors.grey[800],
+                  color: AppColors.textDark,
                 ),
               ),
             ],
@@ -351,7 +361,7 @@ class _ProgressScreenState extends State<ProgressScreen> {
           Container(
             padding: EdgeInsets.all(12),
             decoration: BoxDecoration(
-              color: Color(0xFFF5F9FC),
+              color: AppColors.primary.withOpacity(0.1),
               borderRadius: BorderRadius.circular(12),
             ),
             child: Row(
@@ -360,7 +370,7 @@ class _ProgressScreenState extends State<ProgressScreen> {
                   width: 4,
                   height: 40,
                   decoration: BoxDecoration(
-                    color: Color(0xFF304674),
+                    color: AppColors.primary,
                     borderRadius: BorderRadius.circular(2),
                   ),
                 ),
@@ -372,7 +382,7 @@ class _ProgressScreenState extends State<ProgressScreen> {
                       "${_selectedDate!.day}/${_selectedDate!.month}/${_selectedDate!.year}",
                       style: TextStyle(
                         fontSize: 14,
-                        color: Colors.grey[600],
+                        color: AppColors.textLight,
                       ),
                     ),
                     Text(
@@ -382,7 +392,7 @@ class _ProgressScreenState extends State<ProgressScreen> {
                       style: TextStyle(
                         fontSize: 16,
                         fontWeight: FontWeight.w600,
-                        color: Colors.grey[800],
+                        color: AppColors.textDark,
                       ),
                     ),
                   ],
@@ -414,14 +424,14 @@ class _ProgressScreenState extends State<ProgressScreen> {
         children: [
           Row(
             children: [
-              Icon(Icons.show_chart, color: Color(0xFF304674)),
+              Icon(Icons.show_chart, color: AppColors.primary),
               SizedBox(width: 8),
               Text(
                 "Consistency Over Time",
                 style: TextStyle(
                   fontSize: 18,
                   fontWeight: FontWeight.bold,
-                  color: Colors.grey[800],
+                  color: AppColors.textDark,
                 ),
               ),
             ],
@@ -436,7 +446,7 @@ class _ProgressScreenState extends State<ProgressScreen> {
                 minY: 0,
                 maxY: dataList.isNotEmpty
                     ? (dataList.map((e) => e.value['hours'] as double).reduce((a, b) => a > b ? a : b) + 1)
-                    : 5, // ✅ Fixed: missing closing parenthesis
+                    : 5,
                 gridData: FlGridData(
                   show: true,
                   drawVerticalLine: true,
@@ -480,7 +490,7 @@ class _ProgressScreenState extends State<ProgressScreen> {
                               dataList[value.toInt()].key.split("-")[2],
                               style: TextStyle(
                                 fontSize: 10,
-                                color: Colors.grey[600],
+                                color: AppColors.textLight,
                               ),
                             ),
                           );
@@ -499,7 +509,7 @@ class _ProgressScreenState extends State<ProgressScreen> {
                           value.toInt().toString(),
                           style: TextStyle(
                             fontSize: 10,
-                            color: Colors.grey[600],
+                            color: AppColors.textLight,
                           ),
                         );
                       },
@@ -516,7 +526,7 @@ class _ProgressScreenState extends State<ProgressScreen> {
                       ),
                     ),
                     isCurved: true,
-                    color: Color(0xFF304674),
+                    color: AppColors.primaryDark,
                     barWidth: 3,
                     isStrokeCapRound: true,
                     dotData: FlDotData(
@@ -524,7 +534,7 @@ class _ProgressScreenState extends State<ProgressScreen> {
                       getDotPainter: (spot, percent, barData, index) {
                         return FlDotCirclePainter(
                           radius: 4,
-                          color: Color(0xFF304674),
+                          color: AppColors.primary,
                           strokeColor: Colors.white,
                           strokeWidth: 2,
                         );
@@ -534,8 +544,8 @@ class _ProgressScreenState extends State<ProgressScreen> {
                       show: true,
                       gradient: LinearGradient(
                         colors: [
-                          Color(0xFF304674).withOpacity(0.3),
-                          Color(0xFF304674).withOpacity(0.1),
+                          AppColors.primary.withOpacity(0.3),
+                          AppColors.primary.withOpacity(0.1),
                         ],
                         begin: Alignment.topCenter,
                         end: Alignment.bottomCenter,
@@ -550,4 +560,4 @@ class _ProgressScreenState extends State<ProgressScreen> {
       ),
     );
   }
-  }
+}

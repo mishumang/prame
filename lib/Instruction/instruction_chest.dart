@@ -485,8 +485,8 @@ class _ChestBreathingPageState extends State<ChestBreathingPage> {
                 rounds: rounds,
                 imagePath: _selectedImage,
                 audioPath: audioPath,
-                inhaleAudioPath: 'music/inhale.mp3',
-                exhaleAudioPath: 'music/exhale.mp3',
+                inhaleAudioPath: 'music/inhale_bell1.mp3',
+                exhaleAudioPath: 'music/exhale_bell1.mp3',
               ),
               transitionsBuilder: (ctx, anim, sec, child) =>
                   FadeTransition(opacity: anim, child: child),

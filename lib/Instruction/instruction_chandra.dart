@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:meditation_app/courses/chandra_bhedana_pranayama_page.dart';
 import 'package:youtube_player_flutter/youtube_player_flutter.dart';
 import '../Breathing_Pages/bilateral_screen.dart';
@@ -27,6 +28,26 @@ class _ChandraBhedanaPranayamaPageState extends State<ChandraBhedanaPranayamaPag
   int? _customInhale;
   int? _customExhale;
 
+  // Added for visualization
+  String _selectedImage = 'assets/images/option3.png';
+  static const _imageOptions = [
+    {'name': 'Mountain', 'path': 'assets/images/option3.png'},
+    {'name': 'Wave', 'path': 'assets/images/option1.png'},
+    {'name': 'Sunset', 'path': 'assets/images/option2.png'},
+  ];
+
+  // Added for ambient sound
+  String _selectedSound = 'None';
+  final ScrollController _soundController = ScrollController();
+  static const _soundOptions = [
+    {'name': 'None', 'imagePath': 'assets/images/sound_none.png', 'audioPath': ''},
+    {'name': 'Birds', 'imagePath': 'assets/images/sound_sitar.png', 'audioPath': '../assets/music/birds.mp3'},
+    {'name': 'Rain', 'imagePath': 'assets/images/sound_mountain.png', 'audioPath': '../assets/music/rain.mp3'},
+    {'name': 'Waves', 'imagePath': 'assets/images/sound_waves.png', 'audioPath': ''},
+    {'name': 'AUM', 'imagePath': 'assets/images/sound_om.png', 'audioPath': ''},
+    {'name': 'Flute', 'imagePath': 'assets/images/sound_gong.png', 'audioPath': '../assets/music/flute.mp3'},
+  ];
+
   @override
   void initState() {
     super.initState();
@@ -34,11 +55,24 @@ class _ChandraBhedanaPranayamaPageState extends State<ChandraBhedanaPranayamaPag
       initialVideoId: YoutubePlayer.convertUrlToId(_videoUrl)!,
       flags: YoutubePlayerFlags(autoPlay: false, mute: false),
     );
+    _precacheImages();
+  }
+
+  Future<void> _precacheImages() async {
+    final futures = <Future>[];
+    for (final img in _imageOptions) {
+      futures.add(precacheImage(AssetImage(img['path']!), context));
+    }
+    for (final snd in _soundOptions) {
+      futures.add(precacheImage(AssetImage(snd['imagePath']!), context));
+    }
+    await Future.wait(futures);
   }
 
   @override
   void dispose() {
     _ytController.dispose();
+    _soundController.dispose();
     super.dispose();
   }
 
@@ -72,6 +106,16 @@ class _ChandraBhedanaPranayamaPageState extends State<ChandraBhedanaPranayamaPag
 
             _buildSectionTitle("Duration"),
             _buildDurationControls(),
+            SizedBox(height: 24),
+
+            _buildSectionTitle("Visualization"),
+            SizedBox(height: 12),
+            _buildVisualizationSection(),
+            SizedBox(height: 24),
+
+            _buildSectionTitle("Ambient Sound"),
+            SizedBox(height: 12),
+            _buildSoundSection(),
             SizedBox(height: 24),
 
             _buildCustomizeButton(),
@@ -229,6 +273,127 @@ class _ChandraBhedanaPranayamaPageState extends State<ChandraBhedanaPranayamaPag
     return Text(hint, textAlign: TextAlign.center, style: TextStyle(color: Colors.grey[600]));
   }
 
+  Widget _buildVisualizationSection() {
+    return SizedBox(
+      height: 120,
+      child: ListView.builder(
+        scrollDirection: Axis.horizontal,
+        itemCount: _imageOptions.length,
+        itemBuilder: (_, i) => _buildVisualizationOption(_imageOptions[i]),
+      ),
+    );
+  }
+
+  Widget _buildVisualizationOption(Map<String, String> image) {
+    final isSelected = _selectedImage == image['path'];
+    return Padding(
+      padding: const EdgeInsets.only(right: 12),
+      child: GestureDetector(
+        onTap: () => setState(() => _selectedImage = image['path']!),
+        child: AnimatedContainer(
+          duration: const Duration(milliseconds: 200),
+          width: 100,
+          decoration: BoxDecoration(
+            borderRadius: BorderRadius.circular(12),
+            border: Border.all(
+              color: isSelected ? _brandColor : Colors.transparent,
+              width: 2,
+            ),
+          ),
+          child: ClipRRect(
+            borderRadius: BorderRadius.circular(10),
+            child: Stack(
+              children: [
+                Positioned.fill(
+                  child: Image.asset(image['path']!, fit: BoxFit.cover),
+                ),
+                Positioned(
+                  bottom: 0,
+                  left: 0,
+                  right: 0,
+                  child: Container(
+                    padding: const EdgeInsets.symmetric(vertical: 6),
+                    decoration: BoxDecoration(
+                      gradient: LinearGradient(
+                        begin: Alignment.topCenter,
+                        end: Alignment.bottomCenter,
+                        colors: [Colors.transparent, Colors.black54],
+                      ),
+                    ),
+                    child: Text(
+                      image['name']!,
+                      textAlign: TextAlign.center,
+                      style: const TextStyle(
+                        color: Colors.white, fontSize: 12, fontWeight: FontWeight.w500,
+                      ),
+                    ),
+                  ),
+                ),
+                if (isSelected)
+                  const Positioned(
+                    top: 6,
+                    right: 6,
+                    child: Icon(Icons.check_circle_rounded,
+                        color: Colors.white, size: 20),
+                  ),
+              ],
+            ),
+          ),
+        ),
+      ),
+    );
+  }
+
+  Widget _buildSoundSection() {
+    return SizedBox(
+      height: 48,
+      child: ListView.builder(
+        controller: _soundController,
+        scrollDirection: Axis.horizontal,
+        itemCount: _soundOptions.length,
+        itemBuilder: (_, i) => _buildSoundOption(_soundOptions[i]),
+      ),
+    );
+  }
+
+  Widget _buildSoundOption(Map<String, String> sound) {
+    final isSelected = _selectedSound == sound['name'];
+    return Padding(
+      padding: const EdgeInsets.only(right: 8),
+      child: GestureDetector(
+        onTap: () => setState(() => _selectedSound = sound['name']!),
+        child: AnimatedContainer(
+          duration: const Duration(milliseconds: 200),
+          padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
+          decoration: BoxDecoration(
+            color: isSelected ? _brandColor : Colors.grey[100],
+            borderRadius: BorderRadius.circular(24),
+            border: Border.all(
+              color: isSelected ? _brandColor : Colors.grey[300]!,
+              width: 1,
+            ),
+          ),
+          child: Row(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Icon(Icons.music_note_rounded,
+                  size: 16,
+                  color: isSelected ? Colors.white : _brandColor),
+              const SizedBox(width: 6),
+              Text(
+                sound['name']!,
+                style: TextStyle(
+                  fontSize: 14,
+                  color: isSelected ? Colors.white : Colors.blueGrey[800],
+                ),
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+
   Widget _buildCustomizeButton() {
     return OutlinedButton.icon(
       icon: Icon(Icons.settings, size: 20, color: Colors.black),
@@ -268,16 +433,31 @@ class _ChandraBhedanaPranayamaPageState extends State<ChandraBhedanaPranayamaPag
           final rounds = _isMinutesMode
               ? (_selectedDuration * 60) ~/ (inhale + exhale)
               : _selectedDuration;
-          // Navigator.push(
-          //   context,
-          //   MaterialPageRoute(
-          //     builder: (_) => BilateralScreen(
-          //       inhaleDuration: inhale,
-          //       exhaleDuration: exhale,
-          //       rounds: rounds,
-          //     ),
-          //   ),
-          // );
+
+          // Get selected audio path
+          final selected = _soundOptions.firstWhere(
+                (s) => s['name'] == _selectedSound,
+            orElse: () => {'audioPath': ''},
+          );
+          final audioPath = selected['audioPath']!;
+
+          HapticFeedback.lightImpact();
+          Navigator.push(
+            context,
+            PageRouteBuilder(
+              pageBuilder: (_, anim, __) => BilateralScreen(
+                inhaleDuration: inhale,
+                exhaleDuration: exhale,
+                rounds: rounds,
+                imagePath: _selectedImage,
+                audioPath: audioPath,
+                inhaleAudioPath: 'music/inhale_bell1.mp3',
+                exhaleAudioPath: 'music/exhale_bell1.mp3',
+              ),
+              transitionsBuilder: (_, anim, __, child) =>
+                  FadeTransition(opacity: anim, child: child),
+            ),
+          );
         },
         style: ElevatedButton.styleFrom(
           backgroundColor: _brandColor,

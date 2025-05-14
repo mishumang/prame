@@ -235,7 +235,7 @@ class _MeditationScreenState extends State<MeditationScreen> {
   double _scrollOffset = 0.0;
 
   // Combined items list for all categories with type indication
-  List<dynamic> _allItems = [];
+  List<Map<String, dynamic>> _allItems = [];
 
   @override
   void initState() {
@@ -256,143 +256,145 @@ class _MeditationScreenState extends State<MeditationScreen> {
       _WisdomItem(
         "Mindfulness",
         "Mindfulness is the basic human ability to be fully present.",
-        "assets/images/thought1.png",
-        [Colors.amber[700]!, Colors.amber[300]!],
+        "assets/images/thought1.jpg",
       ),
       _WisdomItem(
         "Balance",
         "Yoga helps create balance in body, mind and spirit.",
-        "assets/images/thought2.png",
-        [Colors.purple[700]!, Colors.purple[300]!],
+        "assets/images/thought2.jpg",
       ),
       _WisdomItem(
         "Breathe",
         "When in doubt, breathe out.",
-        "assets/images/thought3.png",
-        [Colors.indigo[700]!, Colors.indigo[300]!],
-      ),
-      _WisdomItem(
-        "Self-Care",
-        "Taking care of yourself is part of taking care of your life.",
-        "assets/images/thought4.png",
-        [Colors.deepOrange[700]!, Colors.deepOrange[300]!],
+        "assets/images/thoughts3.jpg",
       ),
     ];
 
     // Meditation breathing items
-    final List<dynamic> meditationItems = [
-      _BreathingItem(
-        "Abdominal\nBreathing",
-        ['assets/images/13.png'],
-        [Colors.teal[800]!, Colors.teal[400]!],
-        AbdominalBreathingPage(),
-      ),
-      _BreathingItem(
-        "Chest\nBreathing",
-        ['assets/images/15.png'],
-        [Colors.teal[400]!, Colors.teal[600]!],
-        ChestBreathingPage(),
-      ),
-      _BreathingItem(
-        "Complete\nBreathing",
-        ['assets/images/17.png'],
-        [Colors.teal[700]!, Colors.teal[300]!],
-        CompleteBreathingPage(),
-      ),
-      // Add wisdom card to fill empty space in Meditation section
-      wisdomItems[0],
+    final List<Map<String, dynamic>> meditationItems = [
+      {
+        'type': 'breathing',
+        'item': _BreathingItem(
+          "Abdominal\nBreathing",
+          ['assets/images/13.png'],
+          [Colors.teal[800]!, Colors.teal[400]!],
+          AbdominalBreathingPage(),
+        )
+      },
+      {
+        'type': 'breathing',
+        'item': _BreathingItem(
+          "Chest\nBreathing",
+          ['assets/images/15.png'],
+          [Colors.teal[400]!, Colors.teal[600]!],
+          ChestBreathingPage(),
+        )
+      },
+      {
+        'type': 'breathing',
+        'item': _BreathingItem(
+          "Complete\nBreathing",
+          ['assets/images/17.png'],
+          [Colors.teal[700]!, Colors.teal[300]!],
+          CompleteBreathingPage(),
+        )
+      },
+      // Add wisdom card to fill empty space
+      {'type': 'wisdom', 'item': wisdomItems[0]},
     ];
 
     // Pranayama items
-    final List<dynamic> pranayamaItems = [
-      _BreathingItem(
-        "Bhramari\nPranayama",
-        ['assets/images/21.png'],
-        [Colors.teal[800]!, Colors.teal[300]!],
-        BhramariBreathingPage(),
-      ),
-      _BreathingItem(
-        "Nadi\nShodhana",
-        ['assets/images/1.png'],
-        [Colors.teal[500]!, Colors.teal[200]!],
-        NadiShodhanaPage(),
-      ),
-      _BreathingItem(
-        "Ujjayi\nPranayama",
-        ['assets/images/7.png'],
-        [Colors.teal[300]!, Colors.teal[700]!],
-        UjjayiPranayamaPage(),
-      ),
-      _BreathingItem(
-        "Surya\nBhedana",
-        ['assets/images/3.png'],
-        [Colors.teal[200]!, Colors.teal[500]!],
-        SuryaBhedanaPranayamaPage(),
-      ),
-      _BreathingItem(
-        "Chandra\nBhedana",
-        ['assets/images/5.png'],
-        [Colors.teal[800]!, Colors.teal[400]!],
-        ChandraBhedanaPranayamaPage(),
-      ),
-      _BreathingItem(
-        "Sheetali\nPranayama",
-        ['assets/images/13.png'],
-        [Colors.teal[300]!, Colors.teal[600]!],
-        SheetaliPranayamaPage(),
-      ),
-      _BreathingItem(
-        "Sheetkari\nPranayama",
-        ['assets/images/9.png'],
-        [Colors.teal[400]!, Colors.teal[800]!],
-        SheetkariPranayamaPage(),
-      ),
-      // Add wisdom card to fill empty space in Pranayama section
-      wisdomItems[1],
+    final List<Map<String, dynamic>> pranayamaItems = [
+      {
+        'type': 'breathing',
+        'item': _BreathingItem(
+          "Bhramari\nPranayama",
+          ['assets/images/21.png'],
+          [Colors.teal[800]!, Colors.teal[300]!],
+          BhramariBreathingPage(),
+        )
+      },
+      {
+        'type': 'breathing',
+        'item': _BreathingItem(
+          "Nadi\nShodhana",
+          ['assets/images/1.png'],
+          [Colors.teal[500]!, Colors.teal[200]!],
+          NadiShodhanaPage(),
+        )
+      },
+      {
+        'type': 'breathing',
+        'item': _BreathingItem(
+          "Ujjayi\nPranayama",
+          ['assets/images/7.png'],
+          [Colors.teal[300]!, Colors.teal[700]!],
+          UjjayiPranayamaPage(),
+        )
+      },
+      {
+        'type': 'breathing',
+        'item': _BreathingItem(
+          "Surya\nBhedana",
+          ['assets/images/3.png'],
+          [Colors.teal[200]!, Colors.teal[500]!],
+          SuryaBhedanaPranayamaPage(),
+        )
+      },
+      {
+        'type': 'breathing',
+        'item': _BreathingItem(
+          "Chandra\nBhedana",
+          ['assets/images/5.png'],
+          [Colors.teal[800]!, Colors.teal[400]!],
+          ChandraBhedanaPranayamaPage(),
+        )
+      },
+      {
+        'type': 'breathing',
+        'item': _BreathingItem(
+          "Sheetali\nPranayama",
+          ['assets/images/13.png'],
+          [Colors.teal[300]!, Colors.teal[600]!],
+          SheetaliPranayamaPage(),
+        )
+      },
+      {
+        'type': 'breathing',
+        'item': _BreathingItem(
+          "Sheetkari\nPranayama",
+          ['assets/images/9.png'],
+          [Colors.teal[400]!, Colors.teal[800]!],
+          SheetkariPranayamaPage(),
+        )
+      },
+      // Add wisdom card to fill empty space
+      {'type': 'wisdom', 'item': wisdomItems[1]},
     ];
 
     // Advanced items
-    final List<dynamic> advancedItems = [
-      _BreathingItem(
-        "Box\nBreathing",
-        ['assets/images/19.png'],
-        [Colors.teal[700]!, Colors.teal[300]!],
-        BoxBreathingPage(),
-      ),
-      // Add remaining wisdom cards to fill empty space in Advanced section
-      wisdomItems[2],
-      wisdomItems[3],
+    final List<Map<String, dynamic>> advancedItems = [
+      {
+        'type': 'breathing',
+        'item': _BreathingItem(
+          "Box\nBreathing",
+          ['assets/images/19.png'],
+          [Colors.teal[700]!, Colors.teal[300]!],
+          BoxBreathingPage(),
+        )
+      },
+      // Add remaining wisdom card
+      {'type': 'wisdom', 'item': wisdomItems[2]},
     ];
 
     // Create sections with headers and items
     _allItems = [
       {'type': 'header', 'title': 'MEDITATION'},
-      ...meditationItems.map((item) {
-        if (item is _BreathingItem) {
-          return {'type': 'breathing', 'item': item};
-        } else if (item is _WisdomItem) {
-          return {'type': 'wisdom', 'item': item};
-        }
-        return {'type': 'unknown', 'item': item};
-      }).toList(),
+      ...meditationItems,
       {'type': 'header', 'title': 'PRANAYAMA'},
-      ...pranayamaItems.map((item) {
-        if (item is _BreathingItem) {
-          return {'type': 'breathing', 'item': item};
-        } else if (item is _WisdomItem) {
-          return {'type': 'wisdom', 'item': item};
-        }
-        return {'type': 'unknown', 'item': item};
-      }).toList(),
+      ...pranayamaItems,
       {'type': 'header', 'title': 'ADVANCED'},
-      ...advancedItems.map((item) {
-        if (item is _BreathingItem) {
-          return {'type': 'breathing', 'item': item};
-        } else if (item is _WisdomItem) {
-          return {'type': 'wisdom', 'item': item};
-        }
-        return {'type': 'unknown', 'item': item};
-      }).toList(),
+      ...advancedItems,
     ];
   }
 
@@ -546,7 +548,7 @@ class _MeditationScreenState extends State<MeditationScreen> {
     // Group the items to build sections
     List<Widget> sections = [];
     String? currentHeader;
-    List<dynamic> currentItems = [];
+    List<Map<String, dynamic>> currentItems = [];
 
     for (var i = 0; i < _allItems.length; i++) {
       var item = _allItems[i];
@@ -578,7 +580,7 @@ class _MeditationScreenState extends State<MeditationScreen> {
     return Column(children: sections);
   }
 
-  Widget _buildGridItems(List<dynamic> items) {
+  Widget _buildGridItems(List<Map<String, dynamic>> items) {
     return GridView.builder(
       shrinkWrap: true,
       physics: const NeverScrollableScrollPhysics(),
@@ -629,9 +631,8 @@ class _WisdomItem {
   final String title;
   final String content;
   final String imagePath;
-  final List<Color> gradientColors;
 
-  _WisdomItem(this.title, this.content, this.imagePath, this.gradientColors);
+  _WisdomItem(this.title, this.content, this.imagePath);
 }
 
 // Widget for Daily Wisdom cards
@@ -665,21 +666,21 @@ class _WisdomCard extends StatelessWidget {
                 errorBuilder: (context, error, stackTrace) {
                   // Fallback if image is missing
                   return Container(
-                    color: item.gradientColors[0],
+                    color: Colors.amber[300],
                   );
                 },
               ),
             ),
 
-            // Gradient overlay
+            // Semi-transparent overlay
             Container(
               decoration: BoxDecoration(
                 gradient: LinearGradient(
                   begin: Alignment.topRight,
                   end: Alignment.bottomLeft,
                   colors: [
-                    item.gradientColors[0].withOpacity(0.8),
-                    item.gradientColors[1].withOpacity(0.6),
+                    Colors.black.withOpacity(0.2),
+                    Colors.black.withOpacity(0.5),
                   ],
                 ),
               ),

@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:youtube_player_flutter/youtube_player_flutter.dart';
 import 'package:meditation_app/Breathing_Pages/bilateral_screen.dart';
 import 'package:meditation_app/Customization/customize.dart';
@@ -28,20 +29,46 @@ class SheetkariPranayamaPage extends StatefulWidget {
 class _SheetkariPranayamaPageState extends State<SheetkariPranayamaPage> {
   static const Color _brandColor = Color(0xff98bad5);
 
+  // Breathing technique configuration
   String _selectedTechnique = '4:4';
   final Map<String, String> _techniques = {
     '4:4': '4:4 Sheetkari Pranayama (Standard)',
     'custom': 'Customize Technique',
   };
 
-  final String _videoUrl = 'https://www.youtube.com/watch?v=YOUR_SHEETKARI_VIDEO_ID';
-  late YoutubePlayerController _ytController;
-
+  // Duration settings
   bool _isMinutesMode = false;
   int _selectedDuration = 5;
 
+  // Custom breathing pattern
   int? _customInhale;
   int? _customExhale;
+
+  // Video player
+  final String _videoUrl = 'https://www.youtube.com/watch?v=YOUR_SHEETKARI_VIDEO_ID';
+  late YoutubePlayerController _ytController;
+
+  // Visualization options
+  String _selectedImage = 'assets/images/option3.png';
+  static const _imageOptions = [
+    {'name': 'Mountain', 'path': 'assets/images/option3.png'},
+    {'name': 'Wave', 'path': 'assets/images/option1.png'},
+    {'name': 'Sunset', 'path': 'assets/images/option2.png'},
+  ];
+
+  // Audio options
+  String _selectedSound = 'None';
+  static const _soundOptions = [
+    {'name': 'None', 'imagePath': 'assets/images/sound_none.png', 'audioPath': ''},
+    {'name': 'Birds', 'imagePath': 'assets/images/sound_sitar.png', 'audioPath': '../assets/music/birds.mp3'},
+    {'name': 'Rain', 'imagePath': 'assets/images/sound_mountain.png', 'audioPath': '../assets/music/rain.mp3'},
+    {'name': 'Waves', 'imagePath': 'assets/images/sound_waves.png', 'audioPath': ''},
+    {'name': 'AUM', 'imagePath': 'assets/images/sound_om.png', 'audioPath': ''},
+    {'name': 'Flute', 'imagePath': 'assets/images/sound_gong.png', 'audioPath': '../assets/music/flute.mp3'},
+  ];
+
+  // Scroll controllers
+  final ScrollController _soundController = ScrollController();
 
   @override
   void initState() {
@@ -50,11 +77,24 @@ class _SheetkariPranayamaPageState extends State<SheetkariPranayamaPage> {
       initialVideoId: YoutubePlayer.convertUrlToId(_videoUrl)!,
       flags: const YoutubePlayerFlags(autoPlay: false, mute: false),
     );
+    _precacheImages();
+  }
+
+  Future<void> _precacheImages() async {
+    final futures = <Future>[];
+    for (final img in _imageOptions) {
+      futures.add(precacheImage(AssetImage(img['path']!), context));
+    }
+    for (final snd in _soundOptions) {
+      futures.add(precacheImage(AssetImage(snd['imagePath']!), context));
+    }
+    await Future.wait(futures);
   }
 
   @override
   void dispose() {
     _ytController.dispose();
+    _soundController.dispose();
     super.dispose();
   }
 
@@ -68,7 +108,11 @@ class _SheetkariPranayamaPageState extends State<SheetkariPranayamaPage> {
   Widget _buildSectionTitle(String text) {
     return Text(
       text,
-      style: const TextStyle(fontSize: 18, fontWeight: FontWeight.bold, color: Colors.black87),
+      style: const TextStyle(
+          fontSize: 18,
+          fontWeight: FontWeight.bold,
+          color: Colors.black87
+      ),
     );
   }
 
@@ -198,9 +242,145 @@ class _SheetkariPranayamaPageState extends State<SheetkariPranayamaPage> {
     );
   }
 
+  Widget _buildVisualizationSection() {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        _buildSectionTitle('Visualization'),
+        const SizedBox(height: 12),
+        SizedBox(
+          height: 120,
+          child: ListView.builder(
+            scrollDirection: Axis.horizontal,
+            itemCount: _imageOptions.length,
+            itemBuilder: (_, i) => _buildVisualizationOption(_imageOptions[i]),
+          ),
+        ),
+      ],
+    );
+  }
+
+  Widget _buildVisualizationOption(Map<String, String> image) {
+    final isSelected = _selectedImage == image['path'];
+    return Padding(
+      padding: const EdgeInsets.only(right: 12),
+      child: GestureDetector(
+        onTap: () => setState(() => _selectedImage = image['path']!),
+        child: AnimatedContainer(
+          duration: const Duration(milliseconds: 200),
+          width: 100,
+          decoration: BoxDecoration(
+            borderRadius: BorderRadius.circular(12),
+            border: Border.all(
+              color: isSelected ? _brandColor : Colors.transparent,
+              width: 2,
+            ),
+          ),
+          child: ClipRRect(
+            borderRadius: BorderRadius.circular(10),
+            child: Stack(
+              children: [
+                Positioned.fill(
+                  child: Image.asset(image['path']!, fit: BoxFit.cover),
+                ),
+                Positioned(
+                  bottom: 0,
+                  left: 0,
+                  right: 0,
+                  child: Container(
+                    padding: const EdgeInsets.symmetric(vertical: 6),
+                    decoration: BoxDecoration(
+                      gradient: LinearGradient(
+                        begin: Alignment.topCenter,
+                        end: Alignment.bottomCenter,
+                        colors: [Colors.transparent, Colors.black54],
+                      ),
+                    ),
+                    child: Text(
+                      image['name']!,
+                      textAlign: TextAlign.center,
+                      style: const TextStyle(
+                        color: Colors.white, fontSize: 12, fontWeight: FontWeight.w500,
+                      ),
+                    ),
+                  ),
+                ),
+                if (isSelected)
+                  const Positioned(
+                    top: 6,
+                    right: 6,
+                    child: Icon(Icons.check_circle_rounded,
+                        color: Colors.white, size: 20),
+                  ),
+              ],
+            ),
+          ),
+        ),
+      ),
+    );
+  }
+
+  Widget _buildSoundSection() {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        _buildSectionTitle('Ambient Sound'),
+        const SizedBox(height: 12),
+        SizedBox(
+          height: 48,
+          child: ListView.builder(
+            controller: _soundController,
+            scrollDirection: Axis.horizontal,
+            itemCount: _soundOptions.length,
+            itemBuilder: (_, i) => _buildSoundOption(_soundOptions[i]),
+          ),
+        ),
+      ],
+    );
+  }
+
+  Widget _buildSoundOption(Map<String, String> sound) {
+    final isSelected = _selectedSound == sound['name'];
+    return Padding(
+      padding: const EdgeInsets.only(right: 8),
+      child: GestureDetector(
+        onTap: () => setState(() => _selectedSound = sound['name']!),
+        child: AnimatedContainer(
+          duration: const Duration(milliseconds: 200),
+          padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
+          decoration: BoxDecoration(
+            color: isSelected ? _brandColor : Colors.grey[100],
+            borderRadius: BorderRadius.circular(24),
+            border: Border.all(
+              color: isSelected ? _brandColor : Colors.grey[300]!,
+              width: 1,
+            ),
+          ),
+          child: Row(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Icon(Icons.music_note_rounded,
+                  size: 16,
+                  color: isSelected ? Colors.white : _brandColor),
+              const SizedBox(width: 6),
+              Text(
+                sound['name']!,
+                style: TextStyle(
+                  color: isSelected ? Colors.white : Colors.blueGrey[800],
+                  fontSize: 14,
+                ),
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+
   Widget _buildBeginButton() {
     return SizedBox(
       height: 50,
+      width: double.infinity,
       child: ElevatedButton(
         onPressed: _navigateToTechnique,
         style: ElevatedButton.styleFrom(
@@ -216,6 +396,7 @@ class _SheetkariPranayamaPageState extends State<SheetkariPranayamaPage> {
   void _navigateToTechnique() {
     final rounds = _isMinutesMode ? (_selectedDuration * 60) ~/ _roundSeconds : _selectedDuration;
     int inhale, exhale;
+
     if (_selectedTechnique == 'custom') {
       if (_customInhale == null || _customExhale == null) {
         ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Please set custom values')));
@@ -227,12 +408,31 @@ class _SheetkariPranayamaPageState extends State<SheetkariPranayamaPage> {
       inhale = 4;
       exhale = 4;
     }
-    // Navigator.push(
-    //   context,
-    //   MaterialPageRoute(
-    //     builder: (_) => BilateralScreen(inhaleDuration: inhale, exhaleDuration: exhale, rounds: rounds),
-    //   ),
-    // );
+
+    // Get the selected audio path
+    final selected = _soundOptions.firstWhere(
+          (s) => s['name'] == _selectedSound,
+      orElse: () => {'audioPath': ''},
+    );
+    final audioPath = selected['audioPath']!;
+
+    HapticFeedback.lightImpact();
+    Navigator.push(
+      context,
+      PageRouteBuilder(
+        pageBuilder: (_, anim, __) => BilateralScreen(
+          inhaleDuration: inhale,
+          exhaleDuration: exhale,
+          rounds: rounds,
+          imagePath: _selectedImage,
+          audioPath: audioPath,
+          inhaleAudioPath: 'music/inhale_bell1.mp3',
+          exhaleAudioPath: 'music/exhale_bell1.mp3',
+        ),
+        transitionsBuilder: (_, anim, __, child) =>
+            FadeTransition(opacity: anim, child: child),
+      ),
+    );
   }
 
   Widget _buildDescriptionText() {
@@ -299,7 +499,6 @@ class _SheetkariPranayamaPageState extends State<SheetkariPranayamaPage> {
 
   @override
   Widget build(BuildContext context) {
-    // <— Only one build method, no recursion!
     return Scaffold(
       appBar: AppBar(title: const Text('Sheetkari Pranayama'), centerTitle: true),
       body: SingleChildScrollView(
@@ -317,6 +516,16 @@ class _SheetkariPranayamaPageState extends State<SheetkariPranayamaPage> {
             _buildDurationControls(),
             const SizedBox(height: 8),
             _buildDurationHint(),
+            const SizedBox(height: 24),
+
+            _buildSectionTitle('Visualization'),
+            const SizedBox(height: 12),
+            _buildVisualizationSection(),
+            const SizedBox(height: 24),
+
+            _buildSectionTitle('Ambient Sound'),
+            const SizedBox(height: 12),
+            _buildSoundSection(),
             const SizedBox(height: 24),
 
             _buildCustomizeButton(),

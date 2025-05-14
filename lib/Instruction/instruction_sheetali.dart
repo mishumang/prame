@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:meditation_app/courses/sheetali_pranayama_page.dart';
 import 'package:youtube_player_flutter/youtube_player_flutter.dart';
 import '../Breathing_Pages/bilateral_screen.dart';
@@ -12,20 +13,40 @@ class SheetaliPranayamaPage extends StatefulWidget {
 class _SheetaliPranayamaPageState extends State<SheetaliPranayamaPage> {
   static const Color _brandColor = Color(0xff98bad5);
 
+  // Configuration state
   String _selectedTechnique = '4:4';
+  String _selectedImage = 'assets/images/option3.png';
+  int _selectedDuration = 5;
+  String _selectedSound = 'None';
+  bool _isMinutesMode = false;
+  int? _customInhale;
+  int? _customExhale;
+  final ScrollController _soundController = ScrollController();
+
+  // Video Player
+  final String _videoUrl = "https://www.youtube.com/watch?v=YOUR_SHEETALI_VIDEO_ID";
+  late YoutubePlayerController _ytController;
+
+  // Constants
   final Map<String, String> _techniques = {
     '4:4': '4:4 Sheetali Pranayama (Recommended)',
     'custom': 'Customize Technique',
   };
 
-  final String _videoUrl = "https://www.youtube.com/watch?v=YOUR_SHEETALI_VIDEO_ID";
-  late YoutubePlayerController _ytController;
+  static const _imageOptions = [
+    {'name': 'Mountain', 'path': 'assets/images/option3.png'},
+    {'name': 'Wave', 'path': 'assets/images/option1.png'},
+    {'name': 'Sunset', 'path': 'assets/images/option2.png'},
+  ];
 
-  bool _isMinutesMode = false;
-  int _selectedDuration = 5;
-
-  int? _customInhale;
-  int? _customExhale;
+  static const _soundOptions = [
+    {'name': 'None', 'imagePath': 'assets/images/sound_none.png', 'audioPath': ''},
+    {'name': 'Birds', 'imagePath': 'assets/images/sound_sitar.png', 'audioPath': '../assets/music/birds.mp3'},
+    {'name': 'Rain', 'imagePath': 'assets/images/sound_mountain.png', 'audioPath': '../assets/music/rain.mp3'},
+    {'name': 'Waves', 'imagePath': 'assets/images/sound_waves.png', 'audioPath': ''},
+    {'name': 'AUM', 'imagePath': 'assets/images/sound_om.png', 'audioPath': ''},
+    {'name': 'Flute', 'imagePath': 'assets/images/sound_gong.png', 'audioPath': '../assets/music/flute.mp3'},
+  ];
 
   @override
   void initState() {
@@ -34,11 +55,24 @@ class _SheetaliPranayamaPageState extends State<SheetaliPranayamaPage> {
       initialVideoId: YoutubePlayer.convertUrlToId(_videoUrl)!,
       flags: YoutubePlayerFlags(autoPlay: false, mute: false),
     );
+    _precacheImages();
+  }
+
+  Future<void> _precacheImages() async {
+    final futures = <Future>[];
+    for (final img in _imageOptions) {
+      futures.add(precacheImage(AssetImage(img['path']!), context));
+    }
+    for (final snd in _soundOptions) {
+      futures.add(precacheImage(AssetImage(snd['imagePath']!), context));
+    }
+    await Future.wait(futures);
   }
 
   @override
   void dispose() {
     _ytController.dispose();
+    _soundController.dispose();
     super.dispose();
   }
 
@@ -53,60 +87,111 @@ class _SheetaliPranayamaPageState extends State<SheetaliPranayamaPage> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(
-        title: Text("Sheetali Pranayama"),
-        centerTitle: true,
-        elevation: 0,
-        toolbarHeight: 60,
-        backgroundColor: _brandColor,
-      ),
-      body: SingleChildScrollView(
-        padding: EdgeInsets.all(16),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.stretch,
-          children: [
-            _buildSectionTitle("Breathing Technique"),
-            SizedBox(height: 8),
-            _buildTechniqueButtons(),
-            SizedBox(height: 24),
+      appBar: _buildAppBar(),
+      body: _buildContent(),
+      bottomNavigationBar: _buildLearnMoreButton(),
+    );
+  }
 
-            _buildSectionTitle("Duration"),
-            SizedBox(height: 8),
-            _buildDurationControls(),
-            SizedBox(height: 24),
-
-            _buildCustomizeButton(),
-            SizedBox(height: 16),
-
-            _buildBeginButton(),
-            SizedBox(height: 32),
-
-            _buildSectionTitle("About Sheetali Pranayama"),
-            _buildDescriptionText(),
-            SizedBox(height: 24),
-
-            _buildSectionTitle("Video Demonstration"),
-            SizedBox(height: 12),
-            _buildVideoPlayer(),
-            SizedBox(height: 24),
-
-            _buildSectionTitle("How To Practice"),
-            SizedBox(height: 12),
-            ..._buildInstructionSteps(),
-          ],
+  PreferredSizeWidget _buildAppBar() {
+    return AppBar(
+      systemOverlayStyle: SystemUiOverlayStyle.dark,
+      title: Text(
+        "Sheetali Pranayama",
+        style: Theme.of(context).textTheme.titleLarge?.copyWith(
+          fontWeight: FontWeight.w600,
+          color: Colors.white,
         ),
       ),
-      bottomNavigationBar: _buildLearnMoreButton(),
+      centerTitle: true,
+      elevation: 0,
+      backgroundColor: _brandColor,
+      toolbarHeight: 60,
+    );
+  }
+
+  Widget _buildContent() {
+    return SingleChildScrollView(
+      padding: EdgeInsets.all(16),
+      physics: BouncingScrollPhysics(),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        children: [
+          _buildHeader(),
+          const SizedBox(height: 24),
+
+          _buildSectionTitle("Breathing Technique"),
+          SizedBox(height: 8),
+          _buildTechniqueButtons(),
+          SizedBox(height: 24),
+
+          _buildSectionTitle("Duration"),
+          SizedBox(height: 8),
+          _buildDurationControls(),
+          SizedBox(height: 24),
+
+          _buildSectionTitle("Visualization"),
+          SizedBox(height: 12),
+          _buildVisualizationSection(),
+          SizedBox(height: 24),
+
+          _buildSectionTitle("Ambient Sound"),
+          SizedBox(height: 12),
+          _buildSoundSection(),
+          SizedBox(height: 24),
+
+          _buildCustomizeButton(),
+          SizedBox(height: 16),
+
+          _buildBeginButton(),
+          SizedBox(height: 32),
+
+          _buildSectionTitle("About Sheetali Pranayama"),
+          _buildDescriptionText(),
+          SizedBox(height: 24),
+
+          _buildSectionTitle("Video Demonstration"),
+          SizedBox(height: 12),
+          _buildVideoPlayer(),
+          SizedBox(height: 24),
+
+          _buildSectionTitle("How To Practice"),
+          SizedBox(height: 12),
+          ..._buildInstructionSteps(),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildHeader() {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Text(
+          'Prepare Your Session',
+          style: Theme.of(context).textTheme.headlineSmall?.copyWith(
+            fontWeight: FontWeight.w700,
+            color: Colors.blueGrey[900],
+          ),
+        ),
+        const SizedBox(height: 8),
+        Text(
+          'Customize your Sheetali Pranayama experience',
+          style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+            color: Colors.blueGrey[600],
+          ),
+        ),
+      ],
     );
   }
 
   Widget _buildSectionTitle(String text) {
     return Text(
-      text,
-      style: TextStyle(
-        fontSize: 18,
-        fontWeight: FontWeight.bold,
-        color: Colors.black87,
+      text.toUpperCase(),
+      style: Theme.of(context).textTheme.labelMedium?.copyWith(
+        color: Colors.blueGrey[600],
+        fontWeight: FontWeight.w600,
+        letterSpacing: 0.8,
       ),
     );
   }
@@ -235,6 +320,126 @@ class _SheetaliPranayamaPageState extends State<SheetaliPranayamaPage> {
     return Text(hint, textAlign: TextAlign.center, style: TextStyle(color: Colors.grey[600]));
   }
 
+  Widget _buildVisualizationSection() {
+    return SizedBox(
+      height: 120,
+      child: ListView.builder(
+        scrollDirection: Axis.horizontal,
+        itemCount: _imageOptions.length,
+        itemBuilder: (_, i) => _buildVisualizationOption(_imageOptions[i]),
+      ),
+    );
+  }
+
+  Widget _buildVisualizationOption(Map<String, String> image) {
+    final isSelected = _selectedImage == image['path'];
+    return Padding(
+      padding: const EdgeInsets.only(right: 12),
+      child: GestureDetector(
+        onTap: () => setState(() => _selectedImage = image['path']!),
+        child: AnimatedContainer(
+          duration: const Duration(milliseconds: 200),
+          width: 100,
+          decoration: BoxDecoration(
+            borderRadius: BorderRadius.circular(12),
+            border: Border.all(
+              color: isSelected ? _brandColor : Colors.transparent,
+              width: 2,
+            ),
+          ),
+          child: ClipRRect(
+            borderRadius: BorderRadius.circular(10),
+            child: Stack(
+              children: [
+                Positioned.fill(
+                  child: Image.asset(image['path']!, fit: BoxFit.cover),
+                ),
+                Positioned(
+                  bottom: 0,
+                  left: 0,
+                  right: 0,
+                  child: Container(
+                    padding: const EdgeInsets.symmetric(vertical: 6),
+                    decoration: BoxDecoration(
+                      gradient: LinearGradient(
+                        begin: Alignment.topCenter,
+                        end: Alignment.bottomCenter,
+                        colors: [Colors.transparent, Colors.black54],
+                      ),
+                    ),
+                    child: Text(
+                      image['name']!,
+                      textAlign: TextAlign.center,
+                      style: const TextStyle(
+                        color: Colors.white, fontSize: 12, fontWeight: FontWeight.w500,
+                      ),
+                    ),
+                  ),
+                ),
+                if (isSelected)
+                  const Positioned(
+                    top: 6,
+                    right: 6,
+                    child: Icon(Icons.check_circle_rounded,
+                        color: Colors.white, size: 20),
+                  ),
+              ],
+            ),
+          ),
+        ),
+      ),
+    );
+  }
+
+  Widget _buildSoundSection() {
+    return SizedBox(
+      height: 48,
+      child: ListView.builder(
+        controller: _soundController,
+        scrollDirection: Axis.horizontal,
+        itemCount: _soundOptions.length,
+        itemBuilder: (_, i) => _buildSoundOption(_soundOptions[i]),
+      ),
+    );
+  }
+
+  Widget _buildSoundOption(Map<String, String> sound) {
+    final isSelected = _selectedSound == sound['name'];
+    return Padding(
+      padding: const EdgeInsets.only(right: 8),
+      child: GestureDetector(
+        onTap: () => setState(() => _selectedSound = sound['name']!),
+        child: AnimatedContainer(
+          duration: const Duration(milliseconds: 200),
+          padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
+          decoration: BoxDecoration(
+            color: isSelected ? _brandColor : Colors.grey[100],
+            borderRadius: BorderRadius.circular(24),
+            border: Border.all(
+              color: isSelected ? _brandColor : Colors.grey[300]!,
+              width: 1,
+            ),
+          ),
+          child: Row(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Icon(Icons.music_note_rounded,
+                  size: 16,
+                  color: isSelected ? Colors.white : _brandColor),
+              const SizedBox(width: 6),
+              Text(
+                sound['name']!,
+                style: Theme.of(context).textTheme.labelMedium?.copyWith(
+                  color: isSelected ? Colors.white : Colors.blueGrey[800],
+                ),
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+
   Widget _buildCustomizeButton() {
     return OutlinedButton.icon(
       icon: Icon(Icons.settings, size: 20, color: Colors.black),
@@ -260,34 +465,50 @@ class _SheetaliPranayamaPageState extends State<SheetaliPranayamaPage> {
       setState(() {
         _customInhale = result['inhale'];
         _customExhale = result['exhale'];
+        _selectedTechnique = 'custom';
       });
     }
   }
 
   Widget _buildBeginButton() {
+    final inhale = _selectedTechnique == 'custom' ? _customInhale ?? 4 : 4;
+    final exhale = _selectedTechnique == 'custom' ? _customExhale ?? 4 : 4;
+    final rounds = _isMinutesMode
+        ? (_selectedDuration * 60) ~/ (inhale + exhale)
+        : _selectedDuration;
+
+    final selected = _soundOptions.firstWhere(
+          (s) => s['name'] == _selectedSound,
+      orElse: () => {'audioPath': ''},
+    );
+    final audioPath = selected['audioPath']!;
+
     return SizedBox(
       height: 50,
       child: ElevatedButton(
         onPressed: () {
-          final inhale = _selectedTechnique == '4:4' ? 4 : (_customInhale ?? 4);
-          final exhale = _selectedTechnique == '4:4' ? 4 : (_customExhale ?? 4);
-          final rounds = _isMinutesMode
-              ? (_selectedDuration * 60) ~/ (inhale + exhale)
-              : _selectedDuration;
-          // Navigator.push(
-          //   context,
-          //   MaterialPageRoute(
-          //     builder: (_) => BilateralScreen(
-          //       inhaleDuration: inhale,
-          //       exhaleDuration: exhale,
-          //       rounds: rounds,
-          //     ),
-          //   ),
-          // );
+          HapticFeedback.lightImpact();
+          Navigator.push(
+            context,
+            MaterialPageRoute(
+              builder: (_) => BilateralScreen(
+                inhaleDuration: inhale,
+                exhaleDuration: exhale,
+                rounds: rounds,
+                imagePath: _selectedImage,
+                audioPath: audioPath,
+                inhaleAudioPath: 'music/inhale_bell1.mp3',
+                exhaleAudioPath: 'music/exhale_bell1.mp3',
+              ),
+            ),
+          );
         },
         style: ElevatedButton.styleFrom(
           backgroundColor: _brandColor,
+          foregroundColor: Colors.white,
           shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+          padding: EdgeInsets.symmetric(vertical: 14),
+          elevation: 0,
         ),
         child: Text(
           "BEGIN EXERCISE",

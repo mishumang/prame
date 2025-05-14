@@ -1,6 +1,24 @@
 import 'package:flutter/material.dart';
 import 'dart:math';
 
+// Custom Color Theme
+class AppColors {
+  static const Color primary = Color(0xFF4DB6AC); // Green accent color from the flower button
+  static const Color primaryLight = Color(0xFF009688);
+  static const Color primaryDark = Color(0xFF4DB6AC);
+  static const Color background = Color(0xFFF0F4F8);
+  static const Color textDark = Color(0xFF1F2937);
+  static const Color textLight = Color(0xFF6B7280);
+
+  // Additional colors for avatar backgrounds
+  static const List<Color> avatarColors = [
+    Color(0xFF4DB6AC),
+    Color(0xFF26A69A),
+    Color(0xFF00897B),
+    Color(0xFF00796B),
+  ];
+}
+
 class ContributorsPage extends StatefulWidget {
   const ContributorsPage({Key? key}) : super(key: key);
 
@@ -13,33 +31,29 @@ class _ContributorsPageState extends State<ContributorsPage> with SingleTickerPr
   final List<Contributor> contributors = [
     Contributor(
       name: "Samay Patel",
-      role: "ROLE",
-      description: "Passionate about creating intuitive and visually appealing designs. Samay has 5 years of experience in mobile app development and specializes in user-centric design approaches.",
-      image: "assets/images/samay.jpg",
-      github: "github.com/samaypatel",
-      linkedin: "linkedin.com/in/samaypatel",
+      role: "Project Associate",
+      description: "Samay Patel served as the central figure in the project, leading the team as the Project Associate at the Indian Institute of Science (IISc). With a keen eye for both detail and strategy, he overlooked the entire project lifecycle, from conceptualization to deployment. Samay ensured that all modules were effectively coordinated, deadlines were met, and the project adhered to the intended vision and technical specifications. His leadership facilitated smooth communication between the frontend, backend, and integration teams, driving the project towards successful completion.",
+      github: "https://github.com/samay-patel-2110",
+      linkedin: "https://www.linkedin.com/in/samay-p-6a4084126",
     ),
     Contributor(
       name: "Umang Mishra",
-      role: "ROLEr",
-      description: "Experienced in building robust backend services. Umang has contributed to several open-source projects and loves solving complex architectural challenges.",
-      image: "assets/images/umang.jpg",
-      github: "github.com/umangmishra",
-      linkedin: "linkedin.com/in/umangmishra",
+      role: "Full Stack Developer",
+      description: "Umang Mishra brought versatility to the team, working extensively on both frontend and backend development. Her primary focus was on implementing secure authentication mechanisms, ensuring data protection and user privacy throughout the application. Simultaneously, she worked on integrating frontend components with backend logic, managing data flow between the client and server, and implementing essential business logic. Umang's ability to work across both domains was instrumental in maintaining consistency and resolving technical challenges effectively.",
+      github: "github.com/mishumang",
+      linkedin: "https://www.linkedin.com/in/umang-mishra-932123290/",
     ),
     Contributor(
-      name: "Monisha",
-      role: "ROLE",
-      description: "Expert in creating responsive and interactive user interfaces. Monisha has a strong background in web technologies and is passionate about accessibility in design.",
-      image: "assets/images/monisha.jpg",
+      name: "Monisha Prabhu",
+      role: "Full Stack Developer ",
+      description: "Monisha Prabhu handled the backend development, focusing on database management, server-side logic, and data processing. Utilizing MongoDB, she structured the database architecture to ensure optimal data flow and efficient querying. Additionally, Monisha managed the deployment of backend services on AWS, integrating cloud functionalities such as server management, data storage, and security protocols. Her contributions ensured that the application remained robust, scalable, and capable of handling extensive data operations effectively.",
       github: "github.com/monisha",
       linkedin: "linkedin.com/in/monisha",
     ),
     Contributor(
       name: "Jayanth",
-      role: "ROLE",
-      description: "Skilled in coordinating team efforts and ensuring project success. Jayanth has managed multiple software development projects and excels in agile methodologies.",
-      image: "assets/images/jayanth.jpg",
+      role: "Full Stack Developer",
+      description: "Jayanth played a crucial role in shaping the user experience of the application. He was responsible for designing a user-centric interface that was not only visually appealing but also functionally intuitive. Focusing on frontend development, Jayanth integrated key UI elements and ensured that the application's design was consistent and accessible across all platforms. His work involved implementing responsive layouts, managing component architecture, and aligning the frontend with backend services for a seamless user experience.",
       github: "github.com/jayanth",
       linkedin: "linkedin.com/in/jayanth",
     ),
@@ -81,27 +95,43 @@ class _ContributorsPageState extends State<ContributorsPage> with SingleTickerPr
     });
   }
 
+  // Generate a consistent color for each contributor based on their name
+  Color getContributorColor(String name) {
+    // Simple hash function to get a consistent index
+    int hash = name.codeUnits.fold(0, (prev, element) => prev + element);
+    return AppColors.avatarColors[hash % AppColors.avatarColors.length];
+  }
+
+  // Get the initials of a person's name
+  String getInitials(String name) {
+    List<String> nameParts = name.split(' ');
+    if (nameParts.length > 1) {
+      return '${nameParts[0][0]}${nameParts[1][0]}';
+    }
+    return name.substring(0, min(2, name.length)).toUpperCase();
+  }
+
   @override
   Widget build(BuildContext context) {
-    // Get the primary and accent colors from the theme
+    // Use the custom AppColors instead of theme colors
     final ThemeData theme = Theme.of(context);
-    final ColorScheme colorScheme = theme.colorScheme;
 
     return Scaffold(
+      backgroundColor: AppColors.background,
       appBar: AppBar(
         title: const Text('Contributors'),
-        backgroundColor: colorScheme.primary,
-        foregroundColor: colorScheme.onPrimary,
+        backgroundColor: AppColors.primary,
+        foregroundColor: Colors.white,
         elevation: 0,
         actions: [
           // Donate button in app bar
           TextButton.icon(
             onPressed: _toggleDonateSection,
             icon: const Icon(Icons.favorite, color: Colors.red),
-            label: Text(
+            label: const Text(
               'Donate',
               style: TextStyle(
-                color: colorScheme.onPrimary,
+                color: Colors.white,
                 fontWeight: FontWeight.bold,
               ),
             ),
@@ -115,7 +145,7 @@ class _ContributorsPageState extends State<ContributorsPage> with SingleTickerPr
             height: 150,
             padding: const EdgeInsets.symmetric(vertical: 10),
             decoration: BoxDecoration(
-              color: colorScheme.primary,
+              color: AppColors.primary,
               borderRadius: const BorderRadius.only(
                 bottomLeft: Radius.circular(25),
                 bottomRight: Radius.circular(25),
@@ -165,13 +195,10 @@ class _ContributorsPageState extends State<ContributorsPage> with SingleTickerPr
                             ),
                           ),
                           const SizedBox(height: 6),
-                          Text(
+                          const Text(
                             'Donate',
                             style: TextStyle(
-                              color: colorScheme.onPrimary,
-                              fontWeight: _showDonateSection
-                                  ? FontWeight.bold
-                                  : FontWeight.normal,
+                              color: Colors.white,
                             ),
                             overflow: TextOverflow.ellipsis,
                           ),
@@ -180,7 +207,12 @@ class _ContributorsPageState extends State<ContributorsPage> with SingleTickerPr
                     ),
                   );
                 }
-                // Regular contributor items
+
+                // Regular contributor items with initials instead of images
+                final contributor = contributors[index];
+                final color = getContributorColor(contributor.name);
+                final initials = getInitials(contributor.name);
+
                 return GestureDetector(
                   onTap: () => _onContributorTap(index),
                   child: Container(
@@ -195,22 +227,29 @@ class _ContributorsPageState extends State<ContributorsPage> with SingleTickerPr
                             shape: BoxShape.circle,
                             border: Border.all(
                               color: _currentIndex == index && !_showDonateSection
-                                  ? colorScheme.secondary
+                                  ? Colors.white
                                   : Colors.transparent,
                               width: 2,
                             ),
                           ),
                           child: CircleAvatar(
                             radius: 30,
-                            backgroundImage: AssetImage(contributors[index].image),
-                            backgroundColor: colorScheme.surface,
+                            backgroundColor: color,
+                            child: Text(
+                              initials,
+                              style: const TextStyle(
+                                color: Colors.white,
+                                fontSize: 18,
+                                fontWeight: FontWeight.bold,
+                              ),
+                            ),
                           ),
                         ),
                         const SizedBox(height: 6),
                         Text(
-                          contributors[index].name.split(' ')[0],
+                          contributor.name.split(' ')[0],
                           style: TextStyle(
-                            color: colorScheme.onPrimary,
+                            color: Colors.white,
                             fontWeight: _currentIndex == index && !_showDonateSection
                                 ? FontWeight.bold
                                 : FontWeight.normal,
@@ -245,8 +284,8 @@ class _ContributorsPageState extends State<ContributorsPage> with SingleTickerPr
                 );
               },
               child: _showDonateSection
-                  ? _buildDonateSection(context, colorScheme, theme)
-                  : _buildContributorDetails(context, colorScheme, theme),
+                  ? _buildDonateSection(context, theme)
+                  : _buildContributorDetails(context, theme),
             ),
           ),
         ],
@@ -254,56 +293,35 @@ class _ContributorsPageState extends State<ContributorsPage> with SingleTickerPr
     );
   }
 
-  Widget _buildContributorDetails(BuildContext context, ColorScheme colorScheme, ThemeData theme) {
+  Widget _buildContributorDetails(BuildContext context, ThemeData theme) {
+    final contributor = contributors[_currentIndex];
+    final color = getContributorColor(contributor.name);
+
     return Container(
       padding: const EdgeInsets.all(24),
       child: SingleChildScrollView(
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.center,
           children: [
-            // Profile image
-            Hero(
-              tag: contributors[_currentIndex].name,
-              child: Container(
-                width: 150,
-                height: 150,
-                decoration: BoxDecoration(
-                  shape: BoxShape.circle,
-                  boxShadow: [
-                    BoxShadow(
-                      color: colorScheme.primary.withOpacity(0.3),
-                      blurRadius: 20,
-                      spreadRadius: 5,
-                    ),
-                  ],
-                  image: DecorationImage(
-                    image: AssetImage(contributors[_currentIndex].image),
-                    fit: BoxFit.cover,
-                  ),
-                ),
-              ),
-            ),
-            const SizedBox(height: 24),
-
-            // Name and role
+            // Name and role (removed the large avatar circle)
             Text(
-              contributors[_currentIndex].name,
+              contributor.name,
               style: theme.textTheme.headlineMedium?.copyWith(
                 fontWeight: FontWeight.bold,
-                color: colorScheme.primary,
+                color: AppColors.primary,
               ),
             ),
             const SizedBox(height: 8),
             Container(
               padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 6),
               decoration: BoxDecoration(
-                color: colorScheme.secondary.withOpacity(0.15),
+                color: AppColors.primaryDark.withOpacity(0.15),
                 borderRadius: BorderRadius.circular(20),
               ),
               child: Text(
-                contributors[_currentIndex].role,
+                contributor.role,
                 style: TextStyle(
-                  color: colorScheme.secondary,
+                  color: AppColors.primaryDark,
                   fontWeight: FontWeight.w500,
                 ),
               ),
@@ -314,7 +332,7 @@ class _ContributorsPageState extends State<ContributorsPage> with SingleTickerPr
             Container(
               padding: const EdgeInsets.all(20),
               decoration: BoxDecoration(
-                color: theme.cardColor,
+                color: Colors.white,
                 borderRadius: BorderRadius.circular(20),
                 boxShadow: [
                   BoxShadow(
@@ -325,8 +343,11 @@ class _ContributorsPageState extends State<ContributorsPage> with SingleTickerPr
                 ],
               ),
               child: Text(
-                contributors[_currentIndex].description,
-                style: theme.textTheme.bodyLarge,
+                contributor.description,
+                style: const TextStyle(
+                  color: AppColors.textDark,
+                  fontSize: 16,
+                ),
                 textAlign: TextAlign.center,
               ),
             ),
@@ -337,17 +358,17 @@ class _ContributorsPageState extends State<ContributorsPage> with SingleTickerPr
               mainAxisAlignment: MainAxisAlignment.center,
               children: [
                 _SocialButton(
-                  icon: Icons.link,
+                  icon: Icons.code,
                   label: 'GitHub',
-                  url: contributors[_currentIndex].github,
-                  color: colorScheme.primary,
+                  url: contributor.github,
+                  color: AppColors.primary,
                 ),
                 const SizedBox(width: 16),
                 _SocialButton(
-                  icon: Icons.person,
+                  icon: Icons.business,
                   label: 'LinkedIn',
-                  url: contributors[_currentIndex].linkedin,
-                  color: colorScheme.secondary,
+                  url: contributor.linkedin,
+                  color: AppColors.primaryDark,
                 ),
               ],
             ),
@@ -357,14 +378,14 @@ class _ContributorsPageState extends State<ContributorsPage> with SingleTickerPr
     );
   }
 
-  Widget _buildDonateSection(BuildContext context, ColorScheme colorScheme, ThemeData theme) {
+  Widget _buildDonateSection(BuildContext context, ThemeData theme) {
     return Container(
       padding: const EdgeInsets.all(24),
       child: SingleChildScrollView(
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.center,
           children: [
-            // Heart icon
+            // Heart icon (keeping this icon for the donate section)
             Container(
               width: 120,
               height: 120,
@@ -401,7 +422,7 @@ class _ContributorsPageState extends State<ContributorsPage> with SingleTickerPr
             Container(
               padding: const EdgeInsets.all(20),
               decoration: BoxDecoration(
-                color: theme.cardColor,
+                color: Colors.white,
                 borderRadius: BorderRadius.circular(20),
                 boxShadow: [
                   BoxShadow(
@@ -411,9 +432,12 @@ class _ContributorsPageState extends State<ContributorsPage> with SingleTickerPr
                   ),
                 ],
               ),
-              child: Text(
+              child: const Text(
                 'Your donations help us continue building and improving this project. Every contribution, no matter how small, makes a big difference. Thank you for your support!',
-                style: theme.textTheme.bodyLarge,
+                style: TextStyle(
+                  color: AppColors.textDark,
+                  fontSize: 16,
+                ),
                 textAlign: TextAlign.center,
               ),
             ),
@@ -474,8 +498,8 @@ class _ContributorsPageState extends State<ContributorsPage> with SingleTickerPr
                     );
                   },
                   style: OutlinedButton.styleFrom(
-                    foregroundColor: colorScheme.primary,
-                    side: BorderSide(color: colorScheme.primary),
+                    foregroundColor: AppColors.primary,
+                    side: BorderSide(color: AppColors.primary),
                     padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 12),
                     shape: RoundedRectangleBorder(
                       borderRadius: BorderRadius.circular(30),
@@ -491,7 +515,7 @@ class _ContributorsPageState extends State<ContributorsPage> with SingleTickerPr
   }
 }
 
-// Custom QR Code Painter
+// Custom QR Code Painter (unchanged)
 class QRCodePainter extends CustomPainter {
   @override
   void paint(Canvas canvas, Size size) {
@@ -633,7 +657,6 @@ class Contributor {
   final String name;
   final String role;
   final String description;
-  final String image;
   final String github;
   final String linkedin;
 
@@ -641,10 +664,7 @@ class Contributor {
     required this.name,
     required this.role,
     required this.description,
-    required this.image,
     required this.github,
     required this.linkedin,
   });
 }
-
-// Additional import needed for the QR code's random pattern

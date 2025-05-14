@@ -11,16 +11,15 @@ import 'package:image_picker/image_picker.dart';
 import 'dart:io';
 import 'package:path_provider/path_provider.dart';
 
-
 void main() {
   runApp(MaterialApp(
     home: MeditationApp(),
     theme: ThemeData(
       fontFamily: 'Poppins',
-      primaryColor: const Color(0xffA8DADC), // Pastel blue
+      primaryColor: const Color(0xff00695c), // Pastel blue
       scaffoldBackgroundColor: const Color(0xffF1FAEE), // Pastel cream
       appBarTheme: const AppBarTheme(
-        color: Color(0xff457B9D), // Pastel dark blue
+        color: Color(0xff00695c), // Pastel dark blue
         iconTheme: IconThemeData(color: Colors.white),
         titleTextStyle: TextStyle(color: Colors.white, fontSize: 20),
       ),
@@ -32,10 +31,6 @@ class MeditationApp extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(
-        title: Text('Meditation'),
-        backgroundColor: const Color(0xff457B9D),
-      ),
       body: MeditationProfile(),
     );
   }
@@ -82,64 +77,271 @@ class _MeditationProfileState extends State<MeditationProfile> {
 
   @override
   Widget build(BuildContext context) {
-    return SingleChildScrollView(
-      child: Padding(
-        padding: const EdgeInsets.all(20.0),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            _buildProfileHeader(),
-            SizedBox(height: 20.0),
-            _buildMeditationStats(),
-            SizedBox(height: 20.0),
-            Divider(color: const Color(0xff457B9D).withOpacity(0.3)),
-            SizedBox(height: 20.0),
-            Text(
-              'Recent Achievements',
-              style: TextStyle(
-                fontSize: 18.0,
-                fontWeight: FontWeight.bold,
-                color: const Color(0xff457B9D), // Pastel dark blue
+    // App's color palette
+    final Color primaryBlue = const Color(0xff457B9D);
+    final Color lightBlue = const Color(0xffA8DADC);
+    final Color creamBg = const Color(0xffF1FAEE);
+
+    return Scaffold(
+      extendBodyBehindAppBar: true,
+      appBar: AppBar(
+        title: Text(
+          'Meditation',
+          style: TextStyle(
+            fontWeight: FontWeight.w600,
+            letterSpacing: 0.5,
+          ),
+        ),
+        backgroundColor: primaryBlue.withOpacity(0.95),
+        elevation: 0,
+        actions: [
+          IconButton(
+            icon: Icon(Icons.logout_rounded, size: 24),
+            onPressed: _logout,
+            tooltip: 'Logout',
+          ),
+        ],
+      ),
+      body: Container(
+        decoration: BoxDecoration(
+          gradient: LinearGradient(
+            begin: Alignment.topCenter,
+            end: Alignment.bottomCenter,
+            colors: [
+              creamBg.withOpacity(0.9),
+              creamBg,
+            ],
+          ),
+        ),
+        child: SafeArea(
+          child: SingleChildScrollView(
+            physics: BouncingScrollPhysics(),
+            child: Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 20.0),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  SizedBox(height: 20),
+                  _buildProfileHeader(primaryBlue, lightBlue),
+                  SizedBox(height: 24),
+                  _buildMeditationStats(primaryBlue, lightBlue),
+                  SizedBox(height: 24),
+                  _buildSectionHeader('Recent Achievements', Icons.emoji_events_rounded, primaryBlue),
+                  SizedBox(height: 12),
+                  _buildAchievementList(primaryBlue),
+                  SizedBox(height: 24),
+                  _buildNavigationCards(primaryBlue, lightBlue, context),
+                  SizedBox(height: 32), // Bottom padding for scrolling comfort
+                ],
               ),
             ),
-            SizedBox(height: 10.0),
-            _buildAchievementList(),
-            SizedBox(height: 20.0),
-            Divider(color: const Color(0xff457B9D).withOpacity(0.3)),
-            SizedBox(height: 20.0),
-            _buildIconCard(
-              icon: Icons.favorite,
-              title: 'View Favorite Courses',
-              onTap: () {
-                Navigator.push(
-                  context,
-                  MaterialPageRoute(builder: (context) => FavoritesPage()),
-                );
-              },
+          ),
+        ),
+      ),
+    );
+  }
+
+  Widget _buildProfileHeader(Color primaryBlue, Color lightBlue) {
+    return Container(
+      padding: EdgeInsets.all(20),
+      decoration: BoxDecoration(
+        gradient: LinearGradient(
+          colors: [
+            lightBlue.withOpacity(0.7),
+            lightBlue.withOpacity(0.3),
+          ],
+          begin: Alignment.topLeft,
+          end: Alignment.bottomRight,
+        ),
+        borderRadius: BorderRadius.circular(20),
+        boxShadow: [
+          BoxShadow(
+            color: primaryBlue.withOpacity(0.1),
+            blurRadius: 15,
+            offset: Offset(0, 5),
+          ),
+        ],
+      ),
+      child: Column(
+        children: [
+          Row(
+            children: [
+              Container(
+                height: 80,
+                width: 80,
+                decoration: BoxDecoration(
+                  shape: BoxShape.circle,
+                  gradient: LinearGradient(
+                    colors: [
+                      Colors.white.withOpacity(0.8),
+                      Colors.white.withOpacity(0.5),
+                    ],
+                    begin: Alignment.topLeft,
+                    end: Alignment.bottomRight,
+                  ),
+                  boxShadow: [
+                    BoxShadow(
+                      color: primaryBlue.withOpacity(0.2),
+                      blurRadius: 10,
+                      offset: Offset(0, 4),
+                    ),
+                  ],
+                ),
+                child: Center(
+                  child: Icon(
+                    Icons.person_rounded,
+                    size: 48,
+                    color: primaryBlue,
+                  ),
+                ),
+              ),
+              SizedBox(width: 20),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      userName,
+                      style: TextStyle(
+                        fontSize: 22,
+                        fontWeight: FontWeight.bold,
+                        color: primaryBlue,
+                        letterSpacing: 0.2,
+                      ),
+                      overflow: TextOverflow.ellipsis,
+                    ),
+                    SizedBox(height: 8),
+                    Container(
+                      padding: EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+                      decoration: BoxDecoration(
+                        color: Colors.white.withOpacity(0.6),
+                        borderRadius: BorderRadius.circular(15),
+                      ),
+                      child: Text(
+                        'Meditation Enthusiast',
+                        style: TextStyle(
+                          fontSize: 13,
+                          fontWeight: FontWeight.w500,
+                          color: primaryBlue.withOpacity(0.8),
+                        ),
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            ],
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildMeditationStats(Color primaryBlue, Color lightBlue) {
+    return Container(
+      padding: EdgeInsets.symmetric(vertical: 12, horizontal: 16),
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(20),
+        boxShadow: [
+          BoxShadow(
+            color: primaryBlue.withOpacity(0.08),
+            blurRadius: 15,
+            offset: Offset(0, 5),
+          ),
+        ],
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Padding(
+            padding: const EdgeInsets.only(left: 8.0, top: 8.0, bottom: 16.0),
+            child: Text(
+              'Your Progress',
+              style: TextStyle(
+                fontSize: 16,
+                fontWeight: FontWeight.w600,
+                color: primaryBlue,
+              ),
             ),
-            SizedBox(height: 20.0),
-            Divider(color: const Color(0xff457B9D).withOpacity(0.3)),
-            SizedBox(height: 20.0),
-            _buildIconCard(
-              icon: Icons.info_outline,
-              title: 'About Us',
-              onTap: () {
-                Navigator.push(
-                  context,
-                  MaterialPageRoute(builder: (context) => AboutUsPage()),
-                );
-              },
+          ),
+          Row(
+            mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+            children: [
+              _buildStatCard(
+                title: 'Sessions',
+                value: '$meditationSessions',
+                icon: Icons.repeat_rounded,
+                primaryBlue: primaryBlue,
+                lightBlue: lightBlue,
+              ),
+              _buildStatCard(
+                title: 'Total Time',
+                value: '${totalMeditationTime.toStringAsFixed(1)} min',
+                icon: Icons.timer_rounded,
+                primaryBlue: primaryBlue,
+                lightBlue: lightBlue,
+              ),
+            ],
+          ),
+          SizedBox(height: 8),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildStatCard({
+    required String title,
+    required String value,
+    required IconData icon,
+    required Color primaryBlue,
+    required Color lightBlue,
+  }) {
+    return Expanded(
+      child: Container(
+        margin: EdgeInsets.symmetric(horizontal: 8),
+        padding: EdgeInsets.symmetric(vertical: 16),
+        decoration: BoxDecoration(
+          gradient: LinearGradient(
+            colors: [
+              lightBlue.withOpacity(0.3),
+              lightBlue.withOpacity(0.1),
+            ],
+            begin: Alignment.topLeft,
+            end: Alignment.bottomRight,
+          ),
+          borderRadius: BorderRadius.circular(16),
+        ),
+        child: Column(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            Container(
+              padding: EdgeInsets.all(10),
+              decoration: BoxDecoration(
+                color: Colors.white.withOpacity(0.7),
+                shape: BoxShape.circle,
+              ),
+              child: Icon(
+                icon,
+                size: 24,
+                color: primaryBlue,
+              ),
             ),
-            SizedBox(height: 16.0),
-            _buildIconCard(
-              icon: Icons.people_outline,
-              title: 'Contributors',
-              onTap: () {
-                Navigator.push(
-                  context,
-                  MaterialPageRoute(builder: (context) => ContributorsPage()),
-                );
-              },
+            SizedBox(height: 12),
+            Text(
+              value,
+              style: TextStyle(
+                fontSize: 20,
+                fontWeight: FontWeight.bold,
+                color: primaryBlue,
+              ),
+            ),
+            SizedBox(height: 4),
+            Text(
+              title,
+              style: TextStyle(
+                fontSize: 14,
+                color: primaryBlue.withOpacity(0.7),
+              ),
             ),
           ],
         ),
@@ -147,20 +349,138 @@ class _MeditationProfileState extends State<MeditationProfile> {
     );
   }
 
-  Widget _buildIconCard({
-    required IconData icon,
+  Widget _buildSectionHeader(String title, IconData icon, Color primaryBlue) {
+    return Row(
+      children: [
+        Icon(
+          icon,
+          color: primaryBlue,
+          size: 22,
+        ),
+        SizedBox(width: 10),
+        Text(
+          title,
+          style: TextStyle(
+            fontSize: 18,
+            fontWeight: FontWeight.w600,
+            color: primaryBlue,
+          ),
+        ),
+      ],
+    );
+  }
+
+  Widget _buildAchievementList(Color primaryBlue) {
+    return Container(
+      padding: EdgeInsets.all(20),
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(16),
+        boxShadow: [
+          BoxShadow(
+            color: primaryBlue.withOpacity(0.08),
+            blurRadius: 15,
+            offset: Offset(0, 5),
+          ),
+        ],
+      ),
+      child: Center(
+        child: Column(
+          children: [
+            Icon(
+              Icons.emoji_events_outlined,
+              size: 40,
+              color: primaryBlue.withOpacity(0.3),
+            ),
+            SizedBox(height: 12),
+            Text(
+              'No achievements unlocked yet',
+              style: TextStyle(
+                fontSize: 15,
+                fontWeight: FontWeight.w500,
+                color: primaryBlue.withOpacity(0.7),
+              ),
+            ),
+            SizedBox(height: 8),
+            Text(
+              'Keep meditating to earn rewards!',
+              style: TextStyle(
+                fontSize: 13,
+                color: primaryBlue.withOpacity(0.5),
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Widget _buildNavigationCards(Color primaryBlue, Color lightBlue, BuildContext context) {
+    return Column(
+      children: [
+        _buildNavCard(
+          title: 'View Favorite Courses',
+          subtitle: 'Access your saved meditation practices',
+          icon: Icons.favorite_rounded,
+          primaryBlue: primaryBlue,
+          lightBlue: lightBlue,
+          onTap: () {
+            Navigator.push(
+              context,
+              MaterialPageRoute(builder: (context) => FavoritesPage()),
+            );
+          },
+        ),
+        SizedBox(height: 16),
+        _buildNavCard(
+          title: 'About Us',
+          subtitle: 'Learn about Yoga Mandir, Bengaluru',
+          icon: Icons.info_outline_rounded,
+          primaryBlue: primaryBlue,
+          lightBlue: lightBlue,
+          onTap: () {
+            Navigator.push(
+              context,
+              MaterialPageRoute(builder: (context) => AboutUsPage()),
+            );
+          },
+        ),
+        SizedBox(height: 16),
+        _buildNavCard(
+          title: 'Contributors',
+          subtitle: 'Meet the team behind the app',
+          icon: Icons.people_outline_rounded,
+          primaryBlue: primaryBlue,
+          lightBlue: lightBlue,
+          onTap: () {
+            Navigator.push(
+              context,
+              MaterialPageRoute(builder: (context) => ContributorsPage()),
+            );
+          },
+        ),
+      ],
+    );
+  }
+
+  Widget _buildNavCard({
     required String title,
+    required String subtitle,
+    required IconData icon,
+    required Color primaryBlue,
+    required Color lightBlue,
     required VoidCallback onTap,
   }) {
-    return GestureDetector(
+    return InkWell(
       onTap: onTap,
+      borderRadius: BorderRadius.circular(16),
       child: Container(
-        margin: EdgeInsets.only(bottom: 16),
+        padding: EdgeInsets.symmetric(vertical: 16, horizontal: 20),
         decoration: BoxDecoration(
           gradient: LinearGradient(
             colors: [
-              const Color(0xffA8DADC).withOpacity(0.8),
-              const Color(0xffA8DADC).withOpacity(0.4),
+              lightBlue.withOpacity(0.6),
+              lightBlue.withOpacity(0.2),
             ],
             begin: Alignment.topLeft,
             end: Alignment.bottomRight,
@@ -168,151 +488,58 @@ class _MeditationProfileState extends State<MeditationProfile> {
           borderRadius: BorderRadius.circular(16),
           boxShadow: [
             BoxShadow(
-              color: Colors.black12,
+              color: primaryBlue.withOpacity(0.1),
               blurRadius: 8,
               offset: Offset(0, 4),
             ),
           ],
         ),
-        child: Padding(
-          padding: const EdgeInsets.all(16.0),
-          child: Row(
-            children: [
-              Container(
-                padding: EdgeInsets.all(12),
-                decoration: BoxDecoration(
-                  color: Colors.white.withOpacity(0.7),
-                  shape: BoxShape.circle,
-                ),
-                child: Icon(icon, color: const Color(0xff457B9D), size: 28),
+        child: Row(
+          children: [
+            Container(
+              padding: EdgeInsets.all(12),
+              decoration: BoxDecoration(
+                color: Colors.white.withOpacity(0.7),
+                shape: BoxShape.circle,
               ),
-              SizedBox(width: 16),
-              Expanded(
-                child: Text(
-                  title,
-                  style: TextStyle(
-                    fontSize: 16,
-                    fontWeight: FontWeight.w600,
-                    color: const Color(0xff457B9D),
-                  ),
-                ),
+              child: Icon(
+                icon,
+                color: primaryBlue,
+                size: 26,
               ),
-              Icon(Icons.arrow_forward_ios, size: 16, color: const Color(0xff457B9D)),
-            ],
-          ),
-        ),
-      ),
-    );
-  }
-
-  Widget _buildProfileHeader() {
-    return Row(
-      children: [
-        CircleAvatar(
-          radius: 50.0,
-          backgroundColor: const Color(0xffA8DADC), // Pastel blue
-          child: Icon(Icons.person, size: 50, color: const Color(0xff457B9D)), // Pastel dark blue
-        ),
-        SizedBox(width: 20.0),
-        Expanded(
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Row(
+            ),
+            SizedBox(width: 16),
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  Flexible(
-                    child: Text(
-                      userName,
-                      style: TextStyle(
-                        fontSize: 18.0,
-                        fontWeight: FontWeight.bold,
-                        color: const Color(0xff457B9D), // Pastel dark blue
-                      ),
-                      overflow: TextOverflow.ellipsis,
+                  Text(
+                    title,
+                    style: TextStyle(
+                      fontSize: 16,
+                      fontWeight: FontWeight.w600,
+                      color: primaryBlue,
                     ),
                   ),
-                  IconButton(
-                    icon: Icon(Icons.logout, size: 20, color: const Color(0xff457B9D)),
-                    onPressed: _logout,
+                  SizedBox(height: 4),
+                  Text(
+                    subtitle,
+                    style: TextStyle(
+                      fontSize: 13,
+                      color: primaryBlue.withOpacity(0.7),
+                    ),
                   ),
                 ],
               ),
-              Text(
-                'Meditation Enthusiast',
-                style: TextStyle(
-                  fontSize: 14.0,
-                  color: const Color(0xffA8DADC).withOpacity(0.8), // Pastel blue
-                ),
-              ),
-            ],
-          ),
-        ),
-      ],
-    );
-  }
-
-  Widget _buildMeditationStats() {
-    return Row(
-      mainAxisAlignment: MainAxisAlignment.spaceEvenly,
-      children: [
-        _buildStatCard('Sessions', '$meditationSessions'),
-        _buildStatCard('Total Time', '${totalMeditationTime.toStringAsFixed(1)} min'),
-      ],
-    );
-  }
-
-  Widget _buildStatCard(String title, String value) {
-    return Container(
-      width: 140,
-      padding: const EdgeInsets.all(16.0),
-      decoration: BoxDecoration(
-        gradient: const LinearGradient(
-          colors: [
-            Color(0xffA8DADC), // Pastel blue
-            Color(0xffF1FAEE), // Pastel cream
+            ),
+            Icon(
+              Icons.arrow_forward_ios_rounded,
+              size: 16,
+              color: primaryBlue,
+            ),
           ],
-          begin: Alignment.topLeft,
-          end: Alignment.bottomRight,
         ),
-        borderRadius: BorderRadius.circular(12.0),
-        boxShadow: [
-          BoxShadow(
-            color: Colors.black12,
-            blurRadius: 8,
-            offset: Offset(0, 4),
-          ),
-        ],
       ),
-      child: Column(
-        mainAxisSize: MainAxisSize.min, // Ensures the Column wraps content properly
-        children: [
-          Text(
-            title,
-            style: TextStyle(
-              fontSize: 14.0,
-              color: const Color(0xff457B9D).withOpacity(0.8),
-            ),
-          ),
-          const SizedBox(height: 5.0), // Added const for optimization
-          Text(
-            value,
-            style: const TextStyle(
-              fontSize: 16.0,
-              color: Color(0xff457B9D), // Pastel dark blue
-              fontWeight: FontWeight.bold,
-            ),
-          ),
-        ],
-      ),
-    );
-  }
-
-
-  Widget _buildAchievementList() {
-    // Implement logic to fetch or display achievement data here.
-    return Text(
-      'No achievements unlocked yet. Keep meditating!',
-      style: TextStyle(color: const Color(0xff457B9D).withOpacity(0.8)),
     );
   }
 }
@@ -347,7 +574,7 @@ class AboutUsPage extends StatelessWidget {
                 fit: StackFit.expand,
                 children: [
                   Image.asset(
-                    'assets/images/yoga_banner.jpg', // Add this image to your assets
+                    'assets/images/yoga_banner.jpeg', // Add this image to your assets
                     fit: BoxFit.cover,
                     errorBuilder: (context, error, stackTrace) {
                       return Container(
@@ -533,7 +760,7 @@ class AboutUsPage extends StatelessWidget {
                 ),
                 SizedBox(height: 16),
                 Image.asset(
-                  'assets/images/yoga_group.jpg', // Add an image showing a yoga class or community
+                  'assets/images/yoga_group.jpeg', // Add an image showing a yoga class or community
                   height: 150,
                   width: double.infinity,
                   fit: BoxFit.cover,
@@ -601,7 +828,7 @@ class AboutUsPage extends StatelessWidget {
                     ClipRRect(
                       borderRadius: BorderRadius.circular(8),
                       child: Image.asset(
-                        'assets/images/yoga_history.jpg', // Add an historical image
+                        'assets/images/yoga_history.jpeg', // Add an historical image
                         height: 100,
                         width: 100,
                         fit: BoxFit.cover,
@@ -619,7 +846,7 @@ class AboutUsPage extends StatelessWidget {
                 ),
                 SizedBox(height: 16),
                 Image.asset(
-                  'assets/images/yoga_center.jpg', // Add an image of the center
+                  'assets/images/yoga_centre.jpeg', // Add an image of the center
                   height: 180,
                   width: double.infinity,
                   fit: BoxFit.cover,
@@ -706,7 +933,7 @@ class AboutUsPage extends StatelessWidget {
           SizedBox(height: 16),
           Image.asset(
             title == 'SURYA Program'
-                ? 'assets/images/yoga_students.jpg' // Image of students practicing yoga
+                ? 'assets/images/yoga_students.jpeg' // Image of students practicing yoga
                 : 'assets/images/yoga_app.jpg', // Image of app or digital yoga
             height: 180,
             width: double.infinity,
@@ -790,7 +1017,7 @@ class AboutUsPage extends StatelessWidget {
                 ClipRRect(
                   borderRadius: BorderRadius.circular(8),
                   child: Image.asset(
-                    'assets/images/yoga_lotus.jpg', // Add an image of lotus flower
+                    'assets/images/yoga_lotus.png', // Add an image of lotus flower
                     height: 150,
                     width: double.infinity,
                     fit: BoxFit.cover,
@@ -926,13 +1153,13 @@ class AboutUsPage extends StatelessWidget {
           CircleAvatar(
             radius: 60,
             backgroundColor: lightBlue,
-            backgroundImage: AssetImage('assets/images/founder.jpg'),
+            backgroundImage: AssetImage('assets/images/founder.jpeg'),
             onBackgroundImageError: (exception, stackTrace) {
               // Placeholder if image fails to load
             },
             child: ClipOval(
               child: Image.asset(
-                'assets/images/founder.jpg',
+                'assets/images/founder.jpeg',
                 fit: BoxFit.cover,
                 errorBuilder: (context, error, stackTrace) {
                   return Icon(Icons.person, size: 60, color: primaryBlue);
@@ -962,7 +1189,7 @@ class AboutUsPage extends StatelessWidget {
           ClipRRect(
             borderRadius: BorderRadius.circular(8),
             child: Image.asset(
-              'assets/images/founder_teaching.jpg', // Image of founder teaching
+              'assets/images/founder_teaching.jpeg', // Image of founder teaching
               height: 180,
               width: double.infinity,
               fit: BoxFit.cover,
@@ -1019,7 +1246,7 @@ class AboutUsPage extends StatelessWidget {
                 ClipRRect(
                   borderRadius: BorderRadius.circular(8),
                   child: Image.asset(
-                    'assets/images/yoga_building.jpg', // Image of the yoga center building
+                    'assets/images/yoga_building.jpeg', // Image of the yoga center building
                     height: 180,
                     width: double.infinity,
                     fit: BoxFit.cover,
