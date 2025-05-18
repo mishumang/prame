@@ -31,9 +31,9 @@ class _ChandraBhedanaPranayamaPageState extends State<ChandraBhedanaPranayamaPag
   // Added for visualization
   String _selectedImage = 'assets/images/option3.png';
   static const _imageOptions = [
-    {'name': 'Mountain', 'path': 'assets/images/option3.png'},
-    {'name': 'Wave', 'path': 'assets/images/option1.png'},
-    {'name': 'Sunset', 'path': 'assets/images/option2.png'},
+    {'name': '', 'path': 'assets/images/option3.png'},
+    {'name': '', 'path': 'assets/images/option1.png'},
+    {'name': '', 'path': 'assets/images/option2.png'},
   ];
 
   // Added for ambient sound
@@ -43,8 +43,7 @@ class _ChandraBhedanaPranayamaPageState extends State<ChandraBhedanaPranayamaPag
     {'name': 'None', 'imagePath': 'assets/images/sound_none.png', 'audioPath': ''},
     {'name': 'Birds', 'imagePath': 'assets/images/sound_sitar.png', 'audioPath': '../assets/music/birds.mp3'},
     {'name': 'Rain', 'imagePath': 'assets/images/sound_mountain.png', 'audioPath': '../assets/music/rain.mp3'},
-    {'name': 'Waves', 'imagePath': 'assets/images/sound_waves.png', 'audioPath': ''},
-    {'name': 'AUM', 'imagePath': 'assets/images/sound_om.png', 'audioPath': ''},
+    {'name': 'Waves', 'imagePath': 'assets/images/sound_waves.png', 'audioPath': '../assets/music/waves.mp3'},
     {'name': 'Flute', 'imagePath': 'assets/images/sound_gong.png', 'audioPath': '../assets/music/flute.mp3'},
   ];
 
@@ -451,8 +450,8 @@ class _ChandraBhedanaPranayamaPageState extends State<ChandraBhedanaPranayamaPag
                 rounds: rounds,
                 imagePath: _selectedImage,
                 audioPath: audioPath,
-                inhaleAudioPath: 'music/inhale_bell1.mp3',
-                exhaleAudioPath: 'music/exhale_bell1.mp3',
+                inhaleAudioPath: 'music/inhale-bell1_.mp3',
+                exhaleAudioPath: 'music/exhale_bell.mp3',
               ),
               transitionsBuilder: (_, anim, __, child) =>
                   FadeTransition(opacity: anim, child: child),

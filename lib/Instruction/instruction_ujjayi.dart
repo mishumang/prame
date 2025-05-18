@@ -17,11 +17,17 @@ class _UjjayiPranayamaPageState extends State<UjjayiPranayamaPage> {
     '2:3': '2:3 Breathing',
   };
   final List<Map<String, String>> _imageOptions = [
-    {'name': 'Option 1', 'path': 'assets/images/option3.png'},
-    {'name': 'Option 2', 'path': 'assets/images/option1.png'},
-    {'name': 'Option 3', 'path': 'assets/images/option2.png'},
+    {'name': '', 'path': 'assets/images/option3.png'},
+    {'name': '', 'path': 'assets/images/option1.png'},
+    {'name': '', 'path': 'assets/images/option2.png'},
   ];
-
+  static const _instructionSteps = [
+    "Sit comfortably with your spine straight and shoulders relaxed.",
+    "Inhale slowly through your nose, constricting the back of your throat to create a soft sound.",
+    "Exhale through your nose while maintaining that gentle constriction.",
+    "Continue for your selected duration, focusing on the sound and rhythm.",
+    "When finished, relax the throat and resume normal breathing.",
+  ];
   late YoutubePlayerController _ytController;
   bool _isMinutesMode = false;
   int _selectedDuration = 5;
@@ -65,18 +71,11 @@ class _UjjayiPranayamaPageState extends State<UjjayiPranayamaPage> {
             SizedBox(height: 16),
             _buildBeginButton(),
             SizedBox(height: 24),
-            // Steps dropdown
-            ExpansionTile(
-              title: Text(
-                "How To Practice",
-                style: TextStyle(
-                  fontSize: 18,
-                  fontWeight: FontWeight.bold,
-                  color: Colors.black87,
-                ),
-              ),
-              children: _buildInstructionSteps(),
-            ),
+
+            // Updated How To Practice section
+            _buildSectionTitle("How To Practice"),
+            SizedBox(height: 12),
+            ..._buildInstructionSteps(),
           ],
         ),
       ),
@@ -203,29 +202,11 @@ class _UjjayiPranayamaPageState extends State<UjjayiPranayamaPage> {
                 fit: BoxFit.cover,
               ),
             ),
-            child: Align(
-              alignment: Alignment.bottomCenter,
-              child: Container(
-                width: double.infinity,
-                color: Colors.black54,
-                padding: EdgeInsets.symmetric(vertical: 4),
-                child: Text(
-                  image['name']!,
-                  textAlign: TextAlign.center,
-                  style: TextStyle(
-                    color: Colors.white,
-                    fontSize: 12,
-                    fontWeight: FontWeight.bold,
-                  ),
-                ),
-              ),
-            ),
           ),
         );
       }).toList(),
     );
   }
-
   // Duration controls
   Widget _buildDurationControls() {
     final List<int> options = _isMinutesMode
@@ -380,17 +361,17 @@ class _UjjayiPranayamaPageState extends State<UjjayiPranayamaPage> {
               ? (_selectedDuration * 60) ~/ (inhale + exhale)
               : _selectedDuration;
 
-           Navigator.push(
-             context,
-             MaterialPageRoute(
-               builder: (context) => UjjayiBreathingScreen(
-                 inhaleDuration: inhale,
-                 exhaleDuration: exhale,
-                 rounds: rounds,
-                 imagePath: _selectedImage,
-               ),
-             ),
-           );
+          Navigator.push(
+            context,
+            MaterialPageRoute(
+              builder: (context) => UjjayiBreathingScreen(
+                inhaleDuration: inhale,
+                exhaleDuration: exhale,
+                rounds: rounds,
+                imagePath: _selectedImage,
+              ),
+            ),
+          );
         },
         style: ElevatedButton.styleFrom(
           backgroundColor: Color(0xff98bad5),
@@ -410,18 +391,14 @@ class _UjjayiPranayamaPageState extends State<UjjayiPranayamaPage> {
     );
   }
 
-  // Instruction steps
+  // Instruction steps - updated implementation
   List<Widget> _buildInstructionSteps() {
-    return [
-      _buildStepCard(1, "Sit comfortably with your spine straight and shoulders relaxed."),
-      _buildStepCard(2, "Inhale slowly through your nose, constricting the back of your throat to create a soft sound."),
-      _buildStepCard(3, "Exhale through your nose while maintaining that gentle constriction."),
-      _buildStepCard(4, "Continue for your selected duration, focusing on the sound and rhythm."),
-      _buildStepCard(5, "When finished, relax the throat and resume normal breathing."),
-    ];
+    return List.generate(
+        _instructionSteps.length,
+            (i) => _buildStepCard(i + 1, _instructionSteps[i])
+    );
   }
 
-  // Step card widget
   Widget _buildStepCard(int num, String text) {
     return Card(
       margin: EdgeInsets.only(bottom: 12),
@@ -433,19 +410,25 @@ class _UjjayiPranayamaPageState extends State<UjjayiPranayamaPage> {
       child: Padding(
         padding: EdgeInsets.all(16),
         child: Row(
-          crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             CircleAvatar(
               radius: 14,
               backgroundColor: Color(0xff98bad5),
               child: Text(
-                num.toString(),
-                style: TextStyle(color: Colors.white, fontSize: 12),
+                "$num",
+                style: TextStyle(
+                  color: Colors.white,
+                  fontSize: 12,
+                  fontWeight: FontWeight.bold,
+                ),
               ),
             ),
             SizedBox(width: 12),
             Expanded(
-              child: Text(text, style: TextStyle(height: 1.4)),
+              child: Text(
+                text,
+                style: TextStyle(height: 1.4),
+              ),
             ),
           ],
         ),

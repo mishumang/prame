@@ -29,6 +29,8 @@ class AbdominalScreen extends StatefulWidget {
   final int rounds;
   final String imagePath;
   final String audioPath;
+  final String inhaleAudioPath;
+  final String exhaleAudioPath;
 
   const AbdominalScreen({
     Key? key,
@@ -37,6 +39,8 @@ class AbdominalScreen extends StatefulWidget {
     this.rounds = 5,
     this.imagePath = 'assets/images/option3.png',
     this.audioPath = '',
+    this.inhaleAudioPath = 'music/inhale_bell1.mp3',
+    this.exhaleAudioPath = 'music/exhale_bell.mp3',
   }) : super(key: key);
 
   @override
@@ -55,6 +59,16 @@ class _AbdominalScreenState extends State<AbdominalScreen>
   int completedRounds = 0;
   int totalRounds = 0;
   bool lastPhaseWasInhale = false;
+
+  // Volume control variables
+  double ambientVolume = 0.7; // Default volume (0.0 to 1.0)
+  double bellVolume = 1.0; // Default volume (0.0 to 1.0)
+  bool showVolumeControls = false;
+
+  // Countdown variables
+  bool isCountingDown = false;
+  int countdownValue = 3;
+  Timer? _countdownTimer;
 
   String breathingText = "Inhale";
 
@@ -115,7 +129,7 @@ class _AbdominalScreenState extends State<AbdominalScreen>
         await Future.delayed(const Duration(milliseconds: 5));
 
         if (isRunning) {
-          _startBreathingCycle();
+          _controller.forward();
         }
       }
     });
@@ -123,7 +137,7 @@ class _AbdominalScreenState extends State<AbdominalScreen>
     _audioPlayer = AudioPlayer();
     _bellPlayer = AudioPlayer();
 
-    // ✅ Set AudioContext to allow simultaneous playback
+    // Set AudioContext to allow simultaneous playback
     final audioContext = AudioContext(
       iOS: AudioContextIOS(
         category: AVAudioSessionCategory.playback,
@@ -149,12 +163,11 @@ class _AbdominalScreenState extends State<AbdominalScreen>
     _setupBellPlayer();
   }
 
-
-
   Future<void> _setupAudioPlayer() async {
     try {
       await _audioPlayer.setSourceAsset(widget.audioPath);
       await _audioPlayer.setReleaseMode(ReleaseMode.loop);
+      await _audioPlayer.setVolume(ambientVolume);
     } catch (e) {
       print('Error setting up audio player: $e');
     }
@@ -163,6 +176,7 @@ class _AbdominalScreenState extends State<AbdominalScreen>
   Future<void> _setupBellPlayer() async {
     try {
       await _bellPlayer.setReleaseMode(ReleaseMode.release);
+      await _bellPlayer.setVolume(bellVolume);
     } catch (e) {
       print('Error setting up bell player: $e');
     }
@@ -172,18 +186,83 @@ class _AbdominalScreenState extends State<AbdominalScreen>
     try {
       // Stop any current playing to avoid overlap
       await _bellPlayer.stop();
+
+      // Add debug statement
+      print('Playing bell sound for: $breathingText');
+
       // Play different bell sounds for inhale and exhale
       if (breathingText == "Inhale") {
-        await _bellPlayer.play(AssetSource('music/inhale_bell1.mp3'));
+        await _bellPlayer.play(AssetSource(widget.inhaleAudioPath));
+        print('Attempted to play inhale bell');
       } else {
-        await _bellPlayer.play(AssetSource('music/exhale_bell1.mp3'));
+        await _bellPlayer.play(AssetSource(widget.exhaleAudioPath));
+        print('Attempted to play exhale bell');
       }
     } catch (e) {
+      // More detailed error logging
       print('Error playing bell sound: $e');
+      // Show a snackbar or toast to alert the user of the issue
+      if (context.mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('Error playing bell sound: $e')),
+        );
+      }
     }
   }
 
+  // Update ambient sound volume
+  Future<void> _updateAmbientVolume(double value) async {
+    setState(() {
+      ambientVolume = value;
+    });
+    await _audioPlayer.setVolume(value);
+  }
+
+  // Update bell sound volume
+  Future<void> _updateBellVolume(double value) async {
+    setState(() {
+      bellVolume = value;
+    });
+    await _bellPlayer.setVolume(value);
+  }
+
+  // Toggle volume controls visibility
+  void _toggleVolumeControls() {
+    setState(() {
+      showVolumeControls = !showVolumeControls;
+    });
+  }
+
+  // Countdown logic
+  void _startCountdown() {
+    setState(() {
+      isCountingDown = true;
+      countdownValue = 3;
+      breathingText = countdownValue.toString();
+    });
+
+    _countdownTimer = Timer.periodic(const Duration(seconds: 1), (timer) {
+      setState(() {
+        countdownValue--;
+        if (countdownValue > 0) {
+          breathingText = countdownValue.toString();
+        } else {
+          _countdownTimer?.cancel();
+          isCountingDown = false;
+          breathingText = "Inhale";
+          _startBreathingCycle();
+          if (widget.audioPath.isNotEmpty) {
+            toggleAudio(); // Auto start ambient audio
+          }
+        }
+      });
+    });
+  }
+
   void _startBreathingCycle() {
+    setState(() {
+      isRunning = true;
+    });
     _controller.forward();
     // Play initial bell sound when starting
     if (_controller.value < 0.01) {
@@ -197,17 +276,23 @@ class _AbdominalScreenState extends State<AbdominalScreen>
       setState(() {
         isRunning = false;
       });
-    } else {
+    } else if (isCountingDown) {
+      // Cancel countdown if it's in progress
+      _countdownTimer?.cancel();
       setState(() {
-        isRunning = true;
-        // Reset if completed
-        if (breathingText == "Complete") {
-          completedRounds = 0;
-          breathingText = "Inhale";
-          lastPhaseWasInhale = false;
-        }
+        isCountingDown = false;
+        breathingText = "Inhale";
       });
-      _startBreathingCycle();
+    } else {
+      // Reset if completed
+      if (breathingText == "Complete") {
+        setState(() {
+          completedRounds = 0;
+          lastPhaseWasInhale = false;
+        });
+      }
+      // Start countdown before actual breathing
+      _startCountdown();
     }
   }
 
@@ -242,8 +327,11 @@ class _AbdominalScreenState extends State<AbdominalScreen>
   @override
   void dispose() {
     _controller.dispose();
+    _audioPlayer.stop();
     _audioPlayer.dispose();
     _bellPlayer.dispose();
+    _bellPlayer.stop();
+    _countdownTimer?.cancel();
     super.dispose();
   }
 
@@ -263,6 +351,15 @@ class _AbdominalScreenState extends State<AbdominalScreen>
         backgroundColor: Colors.blueGrey,
         elevation: 10,
         actions: [
+          // Volume control button
+          IconButton(
+            icon: const Icon(
+              Icons.volume_up,
+              color: Colors.white,
+              size: 28.0,
+            ),
+            onPressed: _toggleVolumeControls,
+          ),
           if (widget.audioPath.isNotEmpty)
             IconButton(
               icon: Icon(
@@ -288,6 +385,7 @@ class _AbdominalScreenState extends State<AbdominalScreen>
               child: Column(
                 mainAxisAlignment: MainAxisAlignment.spaceAround,
                 children: [
+                  if (showVolumeControls) _buildVolumeControls(),
                   _buildTextDisplay(breathingText),
                   const SizedBox(height: 20),
                   _buildBreathingImage(),
@@ -304,7 +402,80 @@ class _AbdominalScreenState extends State<AbdominalScreen>
     );
   }
 
+  // Volume controls widget
+  Widget _buildVolumeControls() {
+    return Container(
+      margin: const EdgeInsets.symmetric(vertical: 10),
+      padding: const EdgeInsets.all(15),
+      decoration: BoxDecoration(
+        color: Colors.black45,
+        borderRadius: BorderRadius.circular(15),
+        border: Border.all(color: Colors.blueGrey, width: 1),
+      ),
+      child: Column(
+        children: [
+          Row(
+            children: [
+              const Icon(Icons.music_note, color: Colors.lightBlueAccent),
+              const SizedBox(width: 8),
+              const Text(
+                "Ambient Volume:",
+                style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold),
+              ),
+              Expanded(
+                child: Slider(
+                  value: ambientVolume,
+                  min: 0.0,
+                  max: 1.0,
+                  divisions: 10,
+                  activeColor: Colors.lightBlueAccent,
+                  inactiveColor: Colors.grey.shade700,
+                  label: (ambientVolume * 100).round().toString(),
+                  onChanged: (value) => _updateAmbientVolume(value),
+                ),
+              ),
+              Text(
+                "${(ambientVolume * 100).round()}%",
+                style: const TextStyle(color: Colors.white),
+              ),
+            ],
+          ),
+          const SizedBox(height: 10),
+          Row(
+            children: [
+              const Icon(Icons.notifications_active, color: Colors.amberAccent),
+              const SizedBox(width: 8),
+              const Text(
+                "Bell Volume:",
+                style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold),
+              ),
+              Expanded(
+                child: Slider(
+                  value: bellVolume,
+                  min: 0.0,
+                  max: 1.0,
+                  divisions: 10,
+                  activeColor: Colors.amberAccent,
+                  inactiveColor: Colors.grey.shade700,
+                  label: (bellVolume * 100).round().toString(),
+                  onChanged: (value) => _updateBellVolume(value),
+                ),
+              ),
+              Text(
+                "${(bellVolume * 100).round()}%",
+                style: const TextStyle(color: Colors.white),
+              ),
+            ],
+          ),
+        ],
+      ),
+    );
+  }
+
   Widget _buildTextDisplay(String text) {
+    // Special animation styles for countdown
+    final bool isCountdown = isCountingDown && int.tryParse(text) != null;
+
     return AnimatedBuilder(
       animation: _controller,
       builder: (context, child) {
@@ -323,10 +494,10 @@ class _AbdominalScreenState extends State<AbdominalScreen>
           ),
           child: Text(
             text,
-            style: const TextStyle(
-              fontSize: 30,
+            style: TextStyle(
+              fontSize: isCountdown ? 50 : 30, // Larger font for countdown
               fontWeight: FontWeight.bold,
-              color: Colors.white,
+              color: isCountdown ? Colors.amber : Colors.white, // Amber color for countdown
             ),
           ),
         );
@@ -341,7 +512,11 @@ class _AbdominalScreenState extends State<AbdominalScreen>
         builder: (context, child) {
           double progress = _controller.value;
           double scale;
-          if (progress <= widget.inhaleDuration / (widget.inhaleDuration + widget.exhaleDuration)) {
+
+          // Don't animate during countdown
+          if (isCountingDown) {
+            scale = 1.0;
+          } else if (progress <= widget.inhaleDuration / (widget.inhaleDuration + widget.exhaleDuration)) {
             scale = 1.0 + 0.5 * (progress / (widget.inhaleDuration / (widget.inhaleDuration + widget.exhaleDuration)));
           } else {
             scale = 1.5 - 0.5 * ((progress - widget.inhaleDuration / (widget.inhaleDuration + widget.exhaleDuration)) /
@@ -379,7 +554,9 @@ class _AbdominalScreenState extends State<AbdominalScreen>
     return Column(
       children: [
         Text(
-          "Round ${completedRounds + (isRunning ? 1 : 0)} of $totalRounds",
+          isCountingDown
+              ? "Preparing to start..."
+              : "Round ${completedRounds + (isRunning ? 1 : 0)} of $totalRounds",
           style: const TextStyle(
             color: Colors.white70,
             fontSize: 18,
@@ -392,9 +569,13 @@ class _AbdominalScreenState extends State<AbdominalScreen>
           child: ClipRRect(
             borderRadius: BorderRadius.circular(10),
             child: LinearProgressIndicator(
-              value: totalRounds > 0 ? (completedRounds / totalRounds) : 0,
+              value: isCountingDown
+                  ? (3 - countdownValue) / 3  // Show countdown progress
+                  : (totalRounds > 0 ? (completedRounds / totalRounds) : 0),
               backgroundColor: Colors.grey.withOpacity(0.3),
-              valueColor: AlwaysStoppedAnimation<Color>(Colors.teal),
+              valueColor: AlwaysStoppedAnimation<Color>(
+                  isCountingDown ? Colors.amber : Colors.teal
+              ),
               minHeight: 10,
             ),
           ),
@@ -407,14 +588,18 @@ class _AbdominalScreenState extends State<AbdominalScreen>
     return ElevatedButton.icon(
       onPressed: toggleBreathing,
       style: ElevatedButton.styleFrom(
-        backgroundColor: Colors.teal,
+        backgroundColor: isCountingDown ? Colors.amber : Colors.teal,
         padding: const EdgeInsets.symmetric(horizontal: 30, vertical: 15),
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(30)),
         elevation: 10,
       ),
-      icon: Icon(isRunning ? Icons.pause : Icons.play_arrow),
+      icon: Icon(
+          isCountingDown ? Icons.cancel : (isRunning ? Icons.pause : Icons.play_arrow)
+      ),
       label: Text(
-        isRunning ? "Pause" : (completedRounds >= totalRounds && totalRounds > 0) ? "Restart" : "Start",
+        isCountingDown
+            ? "Cancel"
+            : (isRunning ? "Pause" : (completedRounds >= totalRounds && totalRounds > 0) ? "Restart" : "Start"),
         style: const TextStyle(fontSize: 20),
       ),
     );

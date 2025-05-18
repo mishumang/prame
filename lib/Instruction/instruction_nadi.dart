@@ -31,9 +31,9 @@ class _NadiShodhanaPageState extends State<NadiShodhanaPage> {
   };
 
   final List<Map<String, String>> _imageOptions = [
-    {'name': 'Option 1', 'path': 'assets/images/muladhara_chakra3.png'},
-    {'name': 'Option 2', 'path': 'assets/images/option1.png'},
-    {'name': 'Option 3', 'path': 'assets/images/option2.png'},
+    {'name': '' , 'path': 'assets/images/option3.png'},
+    {'name': '', 'path': 'assets/images/option1.png'},
+    {'name': '', 'path': 'assets/images/option2.png'},
   ];
 
   // Sound options added from second file
@@ -42,9 +42,17 @@ class _NadiShodhanaPageState extends State<NadiShodhanaPage> {
     {'name': 'Birds', 'imagePath': 'assets/images/sound_sitar.png', 'audioPath': '../assets/music/birds.mp3'},
     {'name': 'Rain', 'imagePath': 'assets/images/sound_mountain.png', 'audioPath': '../assets/music/rain.mp3'},
     {'name': 'Waves', 'imagePath': 'assets/images/sound_waves.png', 'audioPath': '../assets/music/waves.mp3'},
-    {'name': 'AUM', 'imagePath': 'assets/images/sound_om.png', 'audioPath': '../assets/music/aum.mp3'},
     {'name': 'Flute', 'imagePath': 'assets/images/sound_gong.png', 'audioPath': '../assets/music/flute.mp3'},
   ];
+
+  static const _instructionSteps = [
+    "Sit comfortably with spine straight and shoulders relaxed.",
+    "Close your right nostril with your thumb; inhale slowly through the left.",
+    "Close left nostril with ring finger, release thumb, exhale via right.",
+    "Inhale through right, close it, then exhale through left.",
+    "Continue alternating for your selected duration.",
+  ];
+
 
   @override
   void initState() {
@@ -106,8 +114,9 @@ class _NadiShodhanaPageState extends State<NadiShodhanaPage> {
             SizedBox(height: 16),
             _buildBeginButton(),
             SizedBox(height: 24),
-            _buildPracticeGuide(),
-            SizedBox(height: 24),
+            _buildSectionTitle("How To Practice"),
+            SizedBox(height: 12),
+            ..._buildInstructionSteps(),
           ],
         ),
       ),
@@ -533,84 +542,49 @@ class _NadiShodhanaPageState extends State<NadiShodhanaPage> {
   }
 
   // Practice guide/instructions
-  Widget _buildPracticeGuide() {
-    return Container(
-      padding: const EdgeInsets.all(16),
-      decoration: BoxDecoration(
-        color: Colors.blue[50],
-        borderRadius: BorderRadius.circular(16),
-        border: Border.all(color: Colors.grey[300]!),
-        boxShadow: [
-          BoxShadow(
-            color: Colors.black.withOpacity(0.05),
-            blurRadius: 8,
-            offset: Offset(0, 4),
-          ),
-        ],
-      ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Text(
-            'How To Practice',
-            style: TextStyle(
-              fontSize: 18,
-              fontWeight: FontWeight.bold,
-              color: Color(0xff98bad5),
-            ),
-          ),
-          const SizedBox(height: 16),
-          _buildInstructionSteps(),
-        ],
-      ),
+  List<Widget> _buildInstructionSteps() {
+    return List.generate(
+        _instructionSteps.length,
+            (i) => _buildStepCard(i + 1, _instructionSteps[i])
     );
   }
 
-  // Instruction steps
-  Widget _buildInstructionSteps() {
-    return Column(
-      children: [
-        _buildStepCard(1, "Sit comfortably with spine straight and shoulders relaxed."),
-        _buildStepCard(2, "Close your right nostril with your thumb; inhale slowly through the left."),
-        _buildStepCard(3, "Close left nostril with ring finger, release thumb, exhale via right."),
-        _buildStepCard(4, "Inhale through right, close it, then exhale through left."),
-        _buildStepCard(5, "Continue alternating for your selected duration."),
-      ],
-    );
-  }
-
-  // Step card widget
   Widget _buildStepCard(int num, String text) {
     return Card(
-      margin: EdgeInsets.only(bottom: 12),
+      margin: const EdgeInsets.only(bottom: 12),
       elevation: 0,
       shape: RoundedRectangleBorder(
         borderRadius: BorderRadius.circular(12),
-        side: BorderSide(color: Colors.grey[200]!, width: 1),
+        side: BorderSide(color: Colors.grey.shade200),
       ),
       child: Padding(
-        padding: EdgeInsets.all(16),
+        padding: const EdgeInsets.all(16),
         child: Row(
-          crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             CircleAvatar(
-              radius: 14,
-              backgroundColor: Color(0xff98bad5),
-              child: Text(
-                num.toString(),
-                style: TextStyle(color: Colors.white, fontSize: 12),
-              ),
+                radius: 14,
+                backgroundColor: Color(0xff98bad5),
+                child: Text(
+                    "$num",
+                    style: const TextStyle(
+                        color: Colors.white,
+                        fontSize: 12,
+                        fontWeight: FontWeight.bold
+                    )
+                )
             ),
-            SizedBox(width: 12),
+            const SizedBox(width: 12),
             Expanded(
-              child: Text(text, style: TextStyle(height: 1.4)),
+                child: Text(
+                    text,
+                    style: const TextStyle(height: 1.4)
+                )
             ),
           ],
         ),
       ),
     );
   }
-
   // Helper method to parse breathing pattern
   (int inhale, int exhale) _parseBreathingPattern() {
     if (_selectedTechnique == 'custom') {

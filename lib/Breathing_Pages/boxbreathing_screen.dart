@@ -29,8 +29,11 @@ class _BoxBreathingScreenState extends State<BoxBreathingScreen>
   late AnimationController _controller;
   late AudioPlayer _inhalePlayer;
   late AudioPlayer _exhalePlayer;
+  late AudioPlayer _chalisaPlayer;     // Add this
+  late AudioPlayer _adityaMantraPlayer; // Add this
   bool isRunning = false;
-  bool isAudioPlaying = true; // Default to true for better UX
+  bool isAudioPlaying = true;
+  bool isMantraPlaying = false; // Default to true for better UX
   bool showHanumanChalisa = false; // Toggle for Hanuman Chalisa
   bool showAdityaMantra = false; // Toggle for Aditya Mantra
   String breathingText = "Get Ready";
@@ -53,6 +56,7 @@ class _BoxBreathingScreenState extends State<BoxBreathingScreen>
   // Audio sources (ensure these assets exist and update paths accordingly)
   late final AssetSource _inhaleSound;
   late final AssetSource _exhaleSound;
+  late final AssetSource _mantraSound;
 
   // Total duration and phase fractions
   late final double _totalDuration;
@@ -268,13 +272,11 @@ class _BoxBreathingScreenState extends State<BoxBreathingScreen>
 
   // Kannada verses
   final List<String> _kannadaHanumanChalisaVerses =[
-    "ದೋಹಾ",
     "ಶ್ರೀ ಗುರು ಚರಣ ಸರೋಜ ರಜ ನಿಜಮನ ಮುಕುರ ಸುಧಾರಿ ।",
     "ವರಣೌ ರಘುವರ ವಿಮಲಯಶ ಜೋ ದಾಯಕ ಫಲಚಾರಿ ॥",
     "ಬುದ್ಧಿಹೀನ ತನುಜಾನಿಕೈ ಸುಮಿರೌ ಪವನ ಕುಮಾರ ।",
     "ಬಲ ಬುದ್ಧಿ ವಿದ್ಯಾ ದೇಹು ಮೋಹಿ ಹರಹು ಕಲೇಶ ವಿಕಾರ ॥",
 
-    "ಧ್ಯಾನಂ",
     "ಅತುಲಿತ ಬಲಧಾಮಂ ಸ್ವರ್ಣ ಶೈಲಾಭ ದೇಹಮ್ ।",
     "ದನುಜ ವನ ಕೃಶಾನುಂ ಜ್ಞಾನಿನಾ ಮಗ್ರಗಣ್ಯಮ್ ॥",
     "ಸಕಲ ಗುಣ ನಿಧಾನಂ ವಾನರಾಣಾ ಮಧೀಶಮ್ ।",
@@ -290,7 +292,7 @@ class _BoxBreathingScreenState extends State<BoxBreathingScreen>
     "ವಾತಾತ್ಮಜಂ ವಾನರಯೂಥ ಮುಖ್ಯಮ್ ।",
     "ಶ್ರೀ ರಾಮ ದೂತಂ ಶಿರಸಾ ನಮಾಮಿ ॥",
 
-    "ಚೌಪಾಈ",
+
     "ಜಯ ಹನುಮಾನ ಜ್ಞಾನ ಗುಣ ಸಾಗರ ।",
     "ಜಯ ಕಪೀಶ ತಿಹು ಲೋಕ ಉಜಾಗರ ॥",
     "ರಾಮದೂತ ಅತುಲಿತ ಬಲಧಾಮಾ ।",
@@ -306,13 +308,13 @@ class _BoxBreathingScreenState extends State<BoxBreathingScreen>
   ];
 
   final List<String> _kannadaAdityaMantraVerses =[
-    "ದೋಹಾ",
+
     "ಶ್ರೀ ಗುರು ಚರಣ ಸರೋಜ ರಜ ನಿಜಮನ ಮುಕುರ ಸುಧಾರಿ ।",
     "ವರಣೌ ರಘುವರ ವಿಮಲಯಶ ಜೋ ದಾಯಕ ಫಲಚಾರಿ ॥",
     "ಬುದ್ಧಿಹೀನ ತನುಜಾನಿಕೈ ಸುಮಿರೌ ಪವನ ಕುಮಾರ ।",
     "ಬಲ ಬುದ್ಧಿ ವಿದ್ಯಾ ದೇಹು ಮೋಹಿ ಹರಹು ಕಲೇಶ ವಿಕಾರ ॥",
 
-    "ಧ್ಯಾನಂ",
+
     "ನಮಸ್ಸವಿತ್ರೇ ಜಗದೇಕ ಚಕ್ಷುಸೇ",
     "ಜಗತ್ಪ್ರಸೂತಿ ಸ್ಥಿತಿ ನಾಶಹೇತವೇ",
     "ತ್ರಯೀಮಯಾಯ ತ್ರಿಗುಣಾತ್ಮ ಧಾರಿಣೇ",
@@ -348,6 +350,7 @@ class _BoxBreathingScreenState extends State<BoxBreathingScreen>
     // Update these asset paths to your audio files.
     _inhaleSound = AssetSource('../assets/music/inhale_bell1.mp3');
     _exhaleSound = AssetSource('../assets/music/exhale_bell1.mp3');
+    _mantraSound = AssetSource('../assets/music/mantra.mp4');
 
     _totalDuration = (widget.inhaleDuration +
         widget.hold1Duration +
@@ -364,6 +367,8 @@ class _BoxBreathingScreenState extends State<BoxBreathingScreen>
       ..setReleaseMode(ReleaseMode.stop);
     _exhalePlayer = AudioPlayer()
       ..setReleaseMode(ReleaseMode.stop);
+    _chalisaPlayer = AudioPlayer()..setReleaseMode(ReleaseMode.loop);     // Add this with loop mode
+    _adityaMantraPlayer = AudioPlayer()..setReleaseMode(ReleaseMode.loop);// Loop the mantra background music
     _preloadAudio();
 
     _controller = AnimationController(
@@ -391,6 +396,8 @@ class _BoxBreathingScreenState extends State<BoxBreathingScreen>
       await Future.wait([
         _inhalePlayer.setSource(_inhaleSound),
         _exhalePlayer.setSource(_exhaleSound),
+        _chalisaPlayer.setSource(AssetSource('../assets/music/chalisaaudio.mp3')),
+        _adityaMantraPlayer.setSource(AssetSource('../assets/music/adi.mp3')),
       ]);
     } catch (e) {
       debugPrint('Error preloading audio: $e');
@@ -559,6 +566,8 @@ class _BoxBreathingScreenState extends State<BoxBreathingScreen>
     await Future.wait([
       _inhalePlayer.stop(),
       _exhalePlayer.stop(),
+      _chalisaPlayer.stop(),       // Add this
+      _adityaMantraPlayer.stop(),
     ]);
   }
 
@@ -567,6 +576,8 @@ class _BoxBreathingScreenState extends State<BoxBreathingScreen>
     await Future.wait([
       _inhalePlayer.setVolume(newVolume),
       _exhalePlayer.setVolume(newVolume),
+      _chalisaPlayer.setVolume(newVolume),        // Add this
+      _adityaMantraPlayer.setVolume(newVolume),
     ]);
     setState(() {
       isAudioPlaying = !isAudioPlaying;
@@ -578,10 +589,13 @@ class _BoxBreathingScreenState extends State<BoxBreathingScreen>
       if (showHanumanChalisa) {
         // If Hanuman Chalisa is showing, turn it off
         showHanumanChalisa = false;
+        _chalisaPlayer.stop();
       } else {
         // Turn on Hanuman Chalisa and ensure Aditya Mantra is off
         showHanumanChalisa = true;
         showAdityaMantra = false;
+        _adityaMantraPlayer.stop(); // Stop Aditya Mantra audio
+        _chalisaPlayer.resume();
       }
       _currentVerseIndex = 0;
       _resetSideReadStatus();
@@ -593,10 +607,13 @@ class _BoxBreathingScreenState extends State<BoxBreathingScreen>
       if (showAdityaMantra) {
         // If Aditya Mantra is showing, turn it off
         showAdityaMantra = false;
+        _adityaMantraPlayer.stop();
       } else {
         // Turn on Aditya Mantra and ensure Hanuman Chalisa is off
         showAdityaMantra = true;
         showHanumanChalisa = false;
+        _chalisaPlayer.stop(); // Stop Hanuman Chalisa audio
+        _adityaMantraPlayer.resume();
       }
       _currentVerseIndex = 0;
       _resetSideReadStatus();
@@ -1261,6 +1278,8 @@ class _BoxBreathingScreenState extends State<BoxBreathingScreen>
     _controller.dispose();
     _inhalePlayer.dispose();
     _exhalePlayer.dispose();
+    _chalisaPlayer.dispose();       // Add this
+    _adityaMantraPlayer.dispose();
     super.dispose();
   }
 

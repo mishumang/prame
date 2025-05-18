@@ -22,9 +22,9 @@ class _AbdominalBreathingPageState extends State<AbdominalBreathingPage> {
 
   // Constants
   static const _imageOptions = [
-    {'name': 'Mountain', 'path': 'assets/images/option3.png'},
-    {'name': 'Wave', 'path': 'assets/images/option1.png'},
-    {'name': 'Sunset', 'path': 'assets/images/option2.png'},
+    {'name': '', 'path': 'assets/images/option3.png'},
+    {'name': '', 'path': 'assets/images/option1.png'},
+    {'name': '', 'path': 'assets/images/option2.png'},
   ];
 
   static const _soundOptions = [
@@ -32,7 +32,6 @@ class _AbdominalBreathingPageState extends State<AbdominalBreathingPage> {
     {'name': 'Birds', 'imagePath': 'assets/images/sound_sitar.png', 'audioPath': 'music/birds.mp3'},
     {'name': 'Rain', 'imagePath': 'assets/images/sound_mountain.png', 'audioPath': 'music/rain.mp3'},
     {'name': 'Waves', 'imagePath': 'assets/images/sound_waves.png', 'audioPath': 'music/waves.mp3'},
-    {'name': 'AUM', 'imagePath': 'assets/images/sound_om.png', 'audioPath': 'music/aum.mp3'},
     {'name': 'Flute', 'imagePath': 'assets/images/sound_gong.png', 'audioPath': 'music/flute.mp3'},
   ];
 
@@ -44,6 +43,16 @@ class _AbdominalBreathingPageState extends State<AbdominalBreathingPage> {
   ];
 
   static const _durationOptions = [1, 3, 5, 10, 15, 20, 30, 45, 60];
+
+  // Practice instruction steps
+  static const _instructionSteps = [
+    "Find a quiet space and sit comfortably with your spine straight.",
+    "Place one hand on your chest and the other on your abdomen.",
+    "Inhale deeply through your nose for 4 seconds, expanding your abdomen.",
+    "Exhale slowly through your mouth for 6 seconds, contracting your abdomen.",
+    "Focus on the rising and falling movement of your abdomen.",
+    "Maintain a relaxed, steady breathing rhythm throughout the practice.",
+  ];
 
   @override
   void initState() {
@@ -111,7 +120,7 @@ class _AbdominalBreathingPageState extends State<AbdominalBreathingPage> {
           _buildSoundSection(),
           const SizedBox(height: 32),
           _buildBeginButton(),
-          const SizedBox(height: 24),
+          const SizedBox(height: 32),
           _buildPracticeGuide(),
           const SizedBox(height: 24),
         ],
@@ -550,79 +559,56 @@ class _AbdominalBreathingPageState extends State<AbdominalBreathingPage> {
   }
 
   Widget _buildPracticeGuide() {
-    final theme = Theme.of(context);
-    return Container(
-      padding: const EdgeInsets.all(16),
-      decoration: BoxDecoration(
-        color: theme.colorScheme.surfaceVariant.withOpacity(0.4),
-        borderRadius: BorderRadius.circular(16),
-        border: Border.all(color: theme.dividerColor),
-        boxShadow: [
-          BoxShadow(
-            color: theme.shadowColor.withOpacity(0.1),
-            blurRadius: 8,
-            offset: const Offset(0, 4),
-          ),
-        ],
-      ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Text(
-            'Practice Instructions',
-            style: theme.textTheme.titleLarge?.copyWith(
-              fontWeight: FontWeight.bold,
-              color: theme.colorScheme.primary,
-            ),
-          ),
-          const SizedBox(height: 16),
-          _buildInstructionStep(1, 'Find a quiet space and sit comfortably', theme),
-          _buildInstructionStep(2, 'Place hands on chest and abdomen', theme),
-          _buildInstructionStep(3, 'Inhale deeply through nose (4 seconds)', theme),
-          _buildInstructionStep(4, 'Exhale slowly through mouth (6 seconds)', theme),
-          _buildInstructionStep(5, 'Focus on abdominal movement', theme),
-          _buildInstructionStep(6, 'Maintain relaxed, steady rhythm', theme),
-        ],
-      ),
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        _buildSectionTitle('HOW TO PRACTICE'),
+        const SizedBox(height: 12),
+        ..._buildInstructionSteps(),
+      ],
     );
   }
 
-  Widget _buildInstructionStep(int number, String text, ThemeData theme) {
-    return Padding(
-      padding: const EdgeInsets.symmetric(vertical: 10),
-      child: Row(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Container(
-            width: 30,
-            height: 30,
-            decoration: BoxDecoration(
-              color: theme.colorScheme.primary,
-              shape: BoxShape.circle,
+  List<Widget> _buildInstructionSteps() {
+    return List.generate(
+        _instructionSteps.length,
+            (i) => _buildStepCard(i + 1, _instructionSteps[i])
+    );
+  }
+
+  Widget _buildStepCard(int num, String text) {
+    return Card(
+      margin: const EdgeInsets.only(bottom: 12),
+      elevation: 0,
+      shape: RoundedRectangleBorder(
+        borderRadius: BorderRadius.circular(12),
+        side: BorderSide(color: Colors.grey.shade200),
+      ),
+      child: Padding(
+        padding: const EdgeInsets.all(16),
+        child: Row(
+          children: [
+            CircleAvatar(
+                radius: 14,
+                backgroundColor: Colors.blue[600],
+                child: Text(
+                    "$num",
+                    style: const TextStyle(
+                        color: Colors.white,
+                        fontSize: 12,
+                        fontWeight: FontWeight.bold
+                    )
+                )
             ),
-            child: Center(
-              child: Text(
-                number.toString(),
-                style: TextStyle(
-                  color: theme.colorScheme.onPrimary,
-                  fontSize: 14,
-                  fontWeight: FontWeight.bold,
-                ),
-              ),
+            const SizedBox(width: 12),
+            Expanded(
+                child: Text(
+                    text,
+                    style: const TextStyle(height: 1.4)
+                )
             ),
-          ),
-          const SizedBox(width: 16),
-          Expanded(
-            child: Text(
-              text,
-              style: theme.textTheme.bodyLarge?.copyWith(
-                color: theme.colorScheme.onSurface.withOpacity(0.9),
-                height: 1.6,
-                fontWeight: FontWeight.w500,
-              ),
-            ),
-          ),
-        ],
+          ],
+        ),
       ),
     );
   }

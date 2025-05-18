@@ -16,26 +16,15 @@ class _BhramariBreathingPageState extends State<BhramariBreathingPage> {
   String _selectedTechnique = '5:8';
   String _selectedImage = 'assets/images/option3.png';
   int _selectedDuration = 5;
-  String _selectedSound = 'None';
   int _customInhale = 5;
   int _customExhale = 8;
-  final ScrollController _soundController = ScrollController();
   late YoutubePlayerController _ytController;
 
   // Constants
   static const _imageOptions = [
-    {'name': 'Mountain', 'path': 'assets/images/option3.png'},
-    {'name': 'Wave', 'path': 'assets/images/option1.png'},
-    {'name': 'Sunset', 'path': 'assets/images/option2.png'},
-  ];
-
-  static const _soundOptions = [
-    {'name': 'None', 'path': 'assets/images/sound_none.png'},
-    {'name': 'Sitar', 'path': 'assets/images/sound_sitar.png'},
-    {'name': 'Echoes', 'path': 'assets/images/sound_mountain.png'},
-    {'name': 'Waves', 'path': 'assets/images/sound_waves.png'},
-    {'name': 'AUM', 'path': 'assets/images/sound_om.png'},
-    {'name': 'Gong', 'path': 'assets/images/sound_gong.png'},
+    {'name': '', 'path': 'assets/images/option3.png'},
+    {'name': '', 'path': 'assets/images/option1.png'},
+    {'name': '', 'path': 'assets/images/option2.png'},
   ];
 
   static const _techniques = [
@@ -46,6 +35,14 @@ class _BhramariBreathingPageState extends State<BhramariBreathingPage> {
   ];
 
   static const _durationOptions = [1, 3, 5, 10, 15, 20, 30, 45, 60];
+  static const _instructionSteps = [
+    "Find a quiet space and sit comfortably",
+    "Close your eyes and relax your facial muscles",
+    "Inhale deeply through your nose (5 seconds)",
+    "Exhale slowly while making a humming sound (8 seconds)",
+    "Keep your lips gently closed during exhalation",
+    "Focus on the vibration of the humming sound",
+  ];
 
   @override
   void initState() {
@@ -63,15 +60,11 @@ class _BhramariBreathingPageState extends State<BhramariBreathingPage> {
     for (final image in _imageOptions) {
       futures.add(precacheImage(AssetImage(image['path']!), context));
     }
-    for (final sound in _soundOptions) {
-      futures.add(precacheImage(AssetImage(sound['path']!), context));
-    }
     await Future.wait(futures);
   }
 
   @override
   void dispose() {
-    _soundController.dispose();
     _ytController.dispose();
     super.dispose();
   }
@@ -115,15 +108,13 @@ class _BhramariBreathingPageState extends State<BhramariBreathingPage> {
           _buildDurationSection(),
           const SizedBox(height: 24),
           _buildVisualizationSection(),
-          const SizedBox(height: 24),
-          _buildSoundSection(),
           const SizedBox(height: 32),
           _buildBeginButton(),
           const SizedBox(height: 24),
           _buildPracticeGuide(),
           const SizedBox(height: 24),
-          _buildVideoSection(),
-          const SizedBox(height: 24),
+          //_buildVideoSection(),
+          //const SizedBox(height: 24),
         ],
       ),
     );
@@ -440,67 +431,6 @@ class _BhramariBreathingPageState extends State<BhramariBreathingPage> {
     );
   }
 
-  Widget _buildSoundSection() {
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        _buildSectionTitle('AMBIENT SOUND'),
-        const SizedBox(height: 12),
-        SizedBox(
-          height: 48,
-          child: ListView.builder(
-            controller: _soundController,
-            scrollDirection: Axis.horizontal,
-            itemCount: _soundOptions.length,
-            itemBuilder: (context, index) {
-              final sound = _soundOptions[index];
-              return _buildSoundOption(sound);
-            },
-          ),
-        ),
-      ],
-    );
-  }
-
-  Widget _buildSoundOption(Map<String, String> sound) {
-    final isSelected = _selectedSound == sound['name'];
-    return Padding(
-      padding: const EdgeInsets.only(right: 8),
-      child: GestureDetector(
-        onTap: () => setState(() => _selectedSound = sound['name']!),
-        child: AnimatedContainer(
-          duration: const Duration(milliseconds: 200),
-          padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
-          decoration: BoxDecoration(
-            color: isSelected ? Colors.blue[600] : Colors.grey[100],
-            borderRadius: BorderRadius.circular(24),
-            border: Border.all(
-              color: isSelected ? Colors.blue[600]! : Colors.grey[300]!,
-              width: 1,
-            ),
-          ),
-          child: Row(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              Icon(
-                Icons.music_note_rounded,
-                size: 16,
-                color: isSelected ? Colors.white : Colors.blue[600],
-              ),
-              const SizedBox(width: 6),
-              Text(
-                sound['name']!,
-                style: Theme.of(context).textTheme.labelMedium?.copyWith(
-                  color: isSelected ? Colors.white : Colors.blueGrey[800],
-                ),
-              ),
-            ],
-          ),
-        ),
-      ),
-    );
-  }
-
   Widget _buildBeginButton() {
     final (inhale, exhale) = _parseBreathingPattern();
     final rounds = _calculateRounds(inhale, exhale);
@@ -552,104 +482,57 @@ class _BhramariBreathingPageState extends State<BhramariBreathingPage> {
   }
 
   Widget _buildPracticeGuide() {
-    final theme = Theme.of(context);
-    return Container(
-      padding: const EdgeInsets.all(16),
-      decoration: BoxDecoration(
-        color: theme.colorScheme.surfaceVariant.withOpacity(0.4),
-        borderRadius: BorderRadius.circular(16),
-        border: Border.all(color: theme.dividerColor),
-        boxShadow: [
-          BoxShadow(
-            color: theme.shadowColor.withOpacity(0.1),
-            blurRadius: 8,
-            offset: const Offset(0, 4),
-          ),
-        ],
-      ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Text(
-            'Practice Instructions',
-            style: theme.textTheme.titleLarge?.copyWith(
-              fontWeight: FontWeight.bold,
-              color: theme.colorScheme.primary,
-            ),
-          ),
-          const SizedBox(height: 16),
-          _buildInstructionStep(
-              1, 'Find a quiet space and sit comfortably', theme),
-          _buildInstructionStep(
-              2, 'Close your eyes and relax your facial muscles', theme),
-          _buildInstructionStep(
-              3, 'Inhale deeply through your nose (5 seconds)', theme),
-          _buildInstructionStep(
-              4, 'Exhale slowly while making a humming sound (8 seconds)', theme),
-          _buildInstructionStep(
-              5, 'Keep your lips gently closed during exhalation', theme),
-          _buildInstructionStep(
-              6, 'Focus on the vibration of the humming sound', theme),
-        ],
-      ),
-    );
-  }
-
-  Widget _buildInstructionStep(int number, String text, ThemeData theme) {
-    return Padding(
-      padding: const EdgeInsets.symmetric(vertical: 10),
-      child: Row(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Container(
-            width: 30,
-            height: 30,
-            decoration: BoxDecoration(
-              color: theme.colorScheme.primary,
-              shape: BoxShape.circle,
-            ),
-            child: Center(
-              child: Text(
-                number.toString(),
-                style: TextStyle(
-                  color: theme.colorScheme.onPrimary,
-                  fontSize: 14,
-                  fontWeight: FontWeight.bold,
-                ),
-              ),
-            ),
-          ),
-          const SizedBox(width: 16),
-          Expanded(
-            child: Text(
-              text,
-              style: theme.textTheme.bodyLarge?.copyWith(
-                color: theme.colorScheme.onSurface.withOpacity(0.9),
-                height: 1.6,
-                fontWeight: FontWeight.w500,
-              ),
-            ),
-          ),
-        ],
-      ),
-    );
-  }
-
-  Widget _buildVideoSection() {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        _buildSectionTitle('VIDEO DEMONSTRATION'),
+        _buildSectionTitle('HOW TO PRACTICE'),
         const SizedBox(height: 12),
-        ClipRRect(
-          borderRadius: BorderRadius.circular(12),
-          child: YoutubePlayer(
-            controller: _ytController,
-            aspectRatio: 16 / 9,
-            showVideoProgressIndicator: true,
-          ),
-        ),
+        ..._buildInstructionSteps(),
       ],
+    );
+  }
+
+  List<Widget> _buildInstructionSteps() {
+    return List.generate(
+        _instructionSteps.length,
+            (i) => _buildStepCard(i + 1, _instructionSteps[i])
+    );
+  }
+
+  Widget _buildStepCard(int num, String text) {
+    return Card(
+      margin: const EdgeInsets.only(bottom: 12),
+      elevation: 0,
+      shape: RoundedRectangleBorder(
+        borderRadius: BorderRadius.circular(12),
+        side: BorderSide(color: Colors.grey.shade200),
+      ),
+      child: Padding(
+        padding: const EdgeInsets.all(16),
+        child: Row(
+          children: [
+            CircleAvatar(
+                radius: 14,
+                backgroundColor: Colors.blue[600],
+                child: Text(
+                    "$num",
+                    style: const TextStyle(
+                        color: Colors.white,
+                        fontSize: 12,
+                        fontWeight: FontWeight.bold
+                    )
+                )
+            ),
+            const SizedBox(width: 12),
+            Expanded(
+                child: Text(
+                    text,
+                    style: const TextStyle(height: 1.4)
+                )
+            ),
+          ],
+        ),
+      ),
     );
   }
 

@@ -34,17 +34,16 @@ class _SheetaliPranayamaPageState extends State<SheetaliPranayamaPage> {
   };
 
   static const _imageOptions = [
-    {'name': 'Mountain', 'path': 'assets/images/option3.png'},
-    {'name': 'Wave', 'path': 'assets/images/option1.png'},
-    {'name': 'Sunset', 'path': 'assets/images/option2.png'},
+    {'name': '', 'path': 'assets/images/option3.png'},
+    {'name': '', 'path': 'assets/images/option1.png'},
+    {'name': '', 'path': 'assets/images/option2.png'},
   ];
 
   static const _soundOptions = [
     {'name': 'None', 'imagePath': 'assets/images/sound_none.png', 'audioPath': ''},
     {'name': 'Birds', 'imagePath': 'assets/images/sound_sitar.png', 'audioPath': '../assets/music/birds.mp3'},
     {'name': 'Rain', 'imagePath': 'assets/images/sound_mountain.png', 'audioPath': '../assets/music/rain.mp3'},
-    {'name': 'Waves', 'imagePath': 'assets/images/sound_waves.png', 'audioPath': ''},
-    {'name': 'AUM', 'imagePath': 'assets/images/sound_om.png', 'audioPath': ''},
+    {'name': 'Waves', 'imagePath': 'assets/images/sound_waves.png', 'audioPath': '../assets/music/waves.mp3'},
     {'name': 'Flute', 'imagePath': 'assets/images/sound_gong.png', 'audioPath': '../assets/music/flute.mp3'},
   ];
 

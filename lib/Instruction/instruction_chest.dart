@@ -22,17 +22,16 @@ class _ChestBreathingPageState extends State<ChestBreathingPage> {
 
   // Constants
   static const _imageOptions = [
-    {'name': 'Mountain', 'path': 'assets/images/option3.png'},
-    {'name': 'Wave',     'path': 'assets/images/option1.png'},
-    {'name': 'Sunset',   'path': 'assets/images/option2.png'},
+    {'name': '', 'path': 'assets/images/option3.png'},
+    {'name': '',     'path': 'assets/images/option1.png'},
+    {'name': '',   'path': 'assets/images/option2.png'},
   ];
 
   static const _soundOptions = [
     {'name': 'None', 'imagePath': 'assets/images/sound_none.png', 'audioPath': ''},
     {'name': 'Birds', 'imagePath': 'assets/images/sound_sitar.png', 'audioPath': '../assets/music/birds.mp3'},
     {'name': 'Rain', 'imagePath': 'assets/images/sound_mountain.png', 'audioPath': '../assets/music/rain.mp3'},
-    {'name': 'Waves', 'imagePath': 'assets/images/sound_waves.png', 'audioPath': ''},
-    {'name': 'AUM', 'imagePath': 'assets/images/sound_om.png', 'audioPath': ''},
+    {'name': 'Waves', 'imagePath': 'assets/images/sound_waves.png', 'audioPath': '../assets/music/waves.mp3'},
     {'name': 'Flute', 'imagePath': 'assets/images/sound_gong.png', 'audioPath': '../assets/music/flute.mp3'},
   ];
 
@@ -50,6 +49,15 @@ class _ChestBreathingPageState extends State<ChestBreathingPage> {
     super.initState();
     _precacheImages();
   }
+  static const _instructionSteps = [
+
+  "Sit upright with shoulders relaxed.",
+"Place your hands on your chest.",
+ "Inhale slowly through your nose, feeling ribs expand.",
+  "Exhale gently through your mouth, ribs falling.",
+ "Repeat for your selected duration with steady rhythm."
+
+  ];
 
   Future<void> _precacheImages() async {
     final futures = <Future>[];
@@ -511,64 +519,56 @@ class _ChestBreathingPageState extends State<ChestBreathingPage> {
   }
 
   Widget _buildPracticeGuide() {
-    final theme = Theme.of(context);
-    return Container(
-      padding: const EdgeInsets.all(16),
-      decoration: BoxDecoration(
-        color: theme.colorScheme.surfaceVariant.withOpacity(0.4),
-        borderRadius: BorderRadius.circular(16),
-        border: Border.all(color: theme.dividerColor),
-        boxShadow: [BoxShadow(color: theme.shadowColor.withOpacity(0.1), blurRadius: 8, offset: const Offset(0,4))],
-      ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Text(
-            'Practice Instructions',
-            style: theme.textTheme.titleLarge?.copyWith(
-              fontWeight: FontWeight.bold,
-              color: theme.colorScheme.primary,
-            ),
-          ),
-          const SizedBox(height: 16),
-          _buildInstructionStep(1, 'Sit upright with shoulders relaxed.', theme),
-          _buildInstructionStep(2, 'Place your hands on your chest.', theme),
-          _buildInstructionStep(3, 'Inhale slowly through your nose, feeling ribs expand.', theme),
-          _buildInstructionStep(4, 'Exhale gently through your mouth, ribs falling.', theme),
-          _buildInstructionStep(5, 'Repeat for your selected duration with steady rhythm.', theme),
-        ],
-      ),
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        _buildSectionTitle('HOW TO PRACTICE'),
+        const SizedBox(height: 12),
+        ..._buildInstructionSteps(),
+      ],
     );
   }
 
-  Widget _buildInstructionStep(int number, String text, ThemeData theme) {
-    return Padding(
-      padding: const EdgeInsets.symmetric(vertical: 10),
-      child: Row(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Container(
-            width: 30, height: 30,
-            decoration: BoxDecoration(color: theme.colorScheme.primary, shape: BoxShape.circle),
-            child: Center(
-              child: Text(
-                '$number',
-                style: TextStyle(color: theme.colorScheme.onPrimary, fontSize: 14, fontWeight: FontWeight.bold),
-              ),
+  List<Widget> _buildInstructionSteps() {
+    return List.generate(
+        _instructionSteps.length,
+            (i) => _buildStepCard(i + 1, _instructionSteps[i])
+    );
+  }
+
+  Widget _buildStepCard(int num, String text) {
+    return Card(
+      margin: const EdgeInsets.only(bottom: 12),
+      elevation: 0,
+      shape: RoundedRectangleBorder(
+        borderRadius: BorderRadius.circular(12),
+        side: BorderSide(color: Colors.grey.shade200),
+      ),
+      child: Padding(
+        padding: const EdgeInsets.all(16),
+        child: Row(
+          children: [
+            CircleAvatar(
+                radius: 14,
+                backgroundColor: Colors.blue[600],
+                child: Text(
+                    "$num",
+                    style: const TextStyle(
+                        color: Colors.white,
+                        fontSize: 12,
+                        fontWeight: FontWeight.bold
+                    )
+                )
             ),
-          ),
-          const SizedBox(width: 16),
-          Expanded(
-            child: Text(
-              text,
-              style: theme.textTheme.bodyLarge?.copyWith(
-                color: theme.colorScheme.onSurface.withOpacity(0.9),
-                height: 1.6,
-                fontWeight: FontWeight.w500,
-              ),
+            const SizedBox(width: 12),
+            Expanded(
+                child: Text(
+                    text,
+                    style: const TextStyle(height: 1.4)
+                )
             ),
-          ),
-        ],
+          ],
+        ),
       ),
     );
   }
@@ -583,7 +583,6 @@ class _ChestBreathingPageState extends State<ChestBreathingPage> {
       ),
     );
   }
-
   (int inhale, int exhale) _parseBreathingPattern() {
     if (_selectedTechnique == 'custom') {
       return (_customInhale, _customExhale);
