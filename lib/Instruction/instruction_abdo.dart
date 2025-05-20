@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:meditation_app/Breathing_Pages/abdominal_46.dart';
 import 'package:meditation_app/Customization/customize.dart';
+import 'package:youtube_player_flutter/youtube_player_flutter.dart';
 
 class AbdominalBreathingPage extends StatefulWidget {
   const AbdominalBreathingPage({super.key});
@@ -18,7 +19,9 @@ class _AbdominalBreathingPageState extends State<AbdominalBreathingPage> {
   String _selectedSound = 'None';
   int _customInhale = 4;
   int _customExhale = 6;
+  final String _videoUrl = "https://www.youtube.com/watch?v=YOUR_SURYA_VIDEO_ID";
   final ScrollController _soundController = ScrollController();
+  late YoutubePlayerController _ytController;
 
   // Constants
   static const _imageOptions = [
@@ -57,6 +60,12 @@ class _AbdominalBreathingPageState extends State<AbdominalBreathingPage> {
   @override
   void initState() {
     super.initState();
+
+    _ytController = YoutubePlayerController(
+        initialVideoId: YoutubePlayer.convertUrlToId(
+        "https://www.youtube.com/watch?v=H7XI-EsIkCY")!,
+    flags: YoutubePlayerFlags(autoPlay: false, mute: false),
+    );
     _precacheImages();
   }
 
@@ -74,6 +83,7 @@ class _AbdominalBreathingPageState extends State<AbdominalBreathingPage> {
   @override
   void dispose() {
     _soundController.dispose();
+    _ytController.dispose();
     super.dispose();
   }
 
@@ -121,6 +131,10 @@ class _AbdominalBreathingPageState extends State<AbdominalBreathingPage> {
           const SizedBox(height: 32),
           _buildBeginButton(),
           const SizedBox(height: 32),
+          _buildAboutSection(),
+          const SizedBox(height: 24),
+          _buildVideoSection(),
+          const SizedBox(height: 24),
           _buildPracticeGuide(),
           const SizedBox(height: 24),
         ],
@@ -555,6 +569,41 @@ class _AbdominalBreathingPageState extends State<AbdominalBreathingPage> {
           ),
         ),
       ),
+    );
+  }
+  Widget _buildAboutSection() {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        _buildSectionTitle('ABOUT ABDOMINAL BREATHING'),
+        const SizedBox(height: 12),
+        Text(
+          "Abdominal breathing focuses on expanding the belly during inhalation and contracting it on exhalation. It encourages deep, full breaths that calm the nervous system and enhance oxygen intake.",
+          style: TextStyle(
+              fontSize: 15,
+              height: 1.5,
+              color: Colors.blueGrey[700]
+          ),
+        ),
+      ],
+    );
+  }
+
+  Widget _buildVideoSection() {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        _buildSectionTitle('VIDEO DEMONSTRATION'),
+        const SizedBox(height: 12),
+        ClipRRect(
+          borderRadius: BorderRadius.circular(12),
+          child: YoutubePlayer(
+              controller: _ytController,
+              aspectRatio: 16/9,
+              showVideoProgressIndicator: true
+          ),
+        ),
+      ],
     );
   }
 

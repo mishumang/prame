@@ -1,69 +1,69 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
-import 'package:meditation_app/courses/chandra_bhedana_pranayama_page.dart';
+import 'package:meditation_app/Breathing_Pages/bilateral_screen.dart';
+import 'package:meditation_app/Customization/customize.dart';
 import 'package:youtube_player_flutter/youtube_player_flutter.dart';
-import '../Breathing_Pages/bilateral_screen.dart';
-import '../Customization/customize.dart';
 
-class ChandraBhedanaPranayamaPage extends StatefulWidget {
+class KapalbhatiPranayamaPage extends StatefulWidget {
+  const KapalbhatiPranayamaPage({super.key});
+
   @override
-  _ChandraBhedanaPranayamaPageState createState() => _ChandraBhedanaPranayamaPageState();
+  State<KapalbhatiPranayamaPage> createState() => _KapalbhatiPranayamaPageState();
 }
 
-class _ChandraBhedanaPranayamaPageState extends State<ChandraBhedanaPranayamaPage> {
+class _KapalbhatiPranayamaPageState extends State<KapalbhatiPranayamaPage> {
   // Configuration state
-  String _selectedTechnique = '4:4';
+  String _selectedTechnique = '4:6';
   String _selectedImage = 'assets/images/option3.png';
-  String _selectedSound = 'None';
   int _selectedDuration = 5;
-  bool _isMinutesMode = false;
-  int? _customInhale = 4;
-  int? _customExhale = 4;
+  String _selectedSound = 'None';
+  int _customInhale = 4;
+  int _customExhale = 6;
+  final String _videoUrl = "https://www.youtube.com/watch?v=YOUR_KAPALBHATI_VIDEO_ID";
   final ScrollController _soundController = ScrollController();
-
-  // Constants
-  static const Color _brandColor = Color(0xff1e88e5);
-
-  // Technique options
-  final Map<String, String> _techniques = {
-    '4:4': '4:4 Chandra Bhedana (Standard)',
-    'custom': 'Customize Technique',
-  };
-
-  // Video
-  final String _videoUrl = 'https://www.youtube.com/watch?v=YOUR_CHANDRA_VIDEO_ID';
   late YoutubePlayerController _ytController;
 
-  // Visualization options
+  // Constants
   static const _imageOptions = [
     {'name': '', 'path': 'assets/images/option3.png'},
     {'name': '', 'path': 'assets/images/option1.png'},
     {'name': '', 'path': 'assets/images/option2.png'},
   ];
 
-  // Sound options
   static const _soundOptions = [
     {'name': 'None', 'imagePath': 'assets/images/sound_none.png', 'audioPath': ''},
-    {'name': 'Birds', 'imagePath': 'assets/images/sound_sitar.png', 'audioPath': '../assets/music/birds.mp3'},
-    {'name': 'Rain', 'imagePath': 'assets/images/sound_mountain.png', 'audioPath': '../assets/music/rain.mp3'},
-    {'name': 'Waves', 'imagePath': 'assets/images/sound_waves.png', 'audioPath': '../assets/music/waves.mp3'},
-    {'name': 'Flute', 'imagePath': 'assets/images/sound_gong.png', 'audioPath': '../assets/music/flute.mp3'},
+    {'name': 'Birds', 'imagePath': 'assets/images/sound_sitar.png', 'audioPath': 'music/birds.mp3'},
+    {'name': 'Rain', 'imagePath': 'assets/images/sound_mountain.png', 'audioPath': 'music/rain.mp3'},
+    {'name': 'Waves', 'imagePath': 'assets/images/sound_waves.png', 'audioPath': 'music/waves.mp3'},
+    {'name': 'Flute', 'imagePath': 'assets/images/sound_gong.png', 'audioPath': 'music/flute.mp3'},
   ];
+
+  static const _techniques = [
+    {'value': '4:6', 'label': 'Recommended', 'inhale': 4, 'exhale': 6},
+    {'value': '4:8', 'label': 'Extended', 'inhale': 4, 'exhale': 8},
+    {'value': '5:5', 'label': 'Balanced', 'inhale': 5, 'exhale': 5},
+    {'value': 'custom', 'label': 'Custom', 'inhale': 0, 'exhale': 0},
+  ];
+
+  static const _durationOptions = [1, 3, 5, 10, 15, 20, 30, 45, 60];
 
   // Practice instruction steps
   static const _instructionSteps = [
     "Sit comfortably with your spine straight and shoulders relaxed.",
-    "Close your right nostril gently with your finger, inhale slowly through the left.",
-    "Close your left nostril, exhale gently through the right.",
-    "Continue alternating, focusing on the cooling lunar energy.",
-    "Maintain a smooth, steady rhythm for your selected duration.",
+    "Place your hands on your knees with palms facing upward.",
+    "Take a deep breath in and then forcefully exhale through your nose.",
+    "Allow your abdomen to contract quickly during the forceful exhalation.",
+    "Let inhalation happen passively and naturally without effort.",
+    "Maintain a steady rhythm, focusing on the sharp, forceful exhalations.",
   ];
 
   @override
   void initState() {
     super.initState();
+
     _ytController = YoutubePlayerController(
-      initialVideoId: YoutubePlayer.convertUrlToId(_videoUrl)!,
+      initialVideoId: YoutubePlayer.convertUrlToId(
+          "https://www.youtube.com/watch?v=FJJazKtH_9I")!,
       flags: YoutubePlayerFlags(autoPlay: false, mute: false),
     );
     _precacheImages();
@@ -82,17 +82,9 @@ class _ChandraBhedanaPranayamaPageState extends State<ChandraBhedanaPranayamaPag
 
   @override
   void dispose() {
-    _ytController.dispose();
     _soundController.dispose();
+    _ytController.dispose();
     super.dispose();
-  }
-
-  int get _roundSeconds {
-    if (_selectedTechnique == 'custom' && _customInhale != null && _customExhale != null) {
-      return _customInhale! + _customExhale!;
-    }
-    // default 4:4
-    return 4 + 4;
   }
 
   @override
@@ -107,7 +99,7 @@ class _ChandraBhedanaPranayamaPageState extends State<ChandraBhedanaPranayamaPag
     return AppBar(
       systemOverlayStyle: SystemUiOverlayStyle.dark,
       title: Text(
-        'Chandra Bhedana Pranayama',
+        'Kapalbhati Pranayama',
         style: Theme.of(context).textTheme.titleLarge?.copyWith(
           fontWeight: FontWeight.w600,
           color: Colors.blueGrey[900],
@@ -163,7 +155,7 @@ class _ChandraBhedanaPranayamaPageState extends State<ChandraBhedanaPranayamaPag
         ),
         const SizedBox(height: 8),
         Text(
-          'Customize your Chandra Bhedana experience',
+          'Customize your Kapalbhati pranayama experience',
           style: Theme.of(context).textTheme.bodyMedium?.copyWith(
             color: Colors.blueGrey[600],
           ),
@@ -173,11 +165,6 @@ class _ChandraBhedanaPranayamaPageState extends State<ChandraBhedanaPranayamaPag
   }
 
   Widget _buildTechniqueSection() {
-    const techniques = [
-      {'value': '4:4', 'label': 'Standard', 'inhale': 4, 'exhale': 4, 'recommended': true},
-      {'value': 'custom', 'label': 'Custom', 'inhale': 0, 'exhale': 0, 'recommended': false},
-    ];
-
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
@@ -190,7 +177,7 @@ class _ChandraBhedanaPranayamaPageState extends State<ChandraBhedanaPranayamaPag
           mainAxisSpacing: 12,
           crossAxisSpacing: 12,
           childAspectRatio: 2.2,
-          children: techniques.map(_buildTechniqueOption).toList(),
+          children: _techniques.map(_buildTechniqueOption).toList(),
         ),
         if (_selectedTechnique == 'custom') ...[
           const SizedBox(height: 16),
@@ -202,18 +189,18 @@ class _ChandraBhedanaPranayamaPageState extends State<ChandraBhedanaPranayamaPag
 
   Widget _buildTechniqueOption(Map<String, dynamic> technique) {
     final bool isSelected = _selectedTechnique == technique['value'];
-    final bool isRecommended = technique['recommended'] == true;
+    final bool isRecommended = technique['value'] == '4:6';
 
     return GestureDetector(
       onTap: () => _handleTechniqueSelection(technique),
       child: Container(
         padding: const EdgeInsets.all(12),
         decoration: BoxDecoration(
-          color: isSelected ? Color(0xFFE3EBF2) : Colors.white,
+          color: isSelected ? Colors.blue[50] : Colors.white,
           borderRadius: BorderRadius.circular(12),
           border: Border.all(
             color: isSelected
-                ? _brandColor
+                ? Colors.blue[600]!
                 : isRecommended
                 ? Colors.amber[600]!
                 : Colors.grey[300]!,
@@ -224,11 +211,14 @@ class _ChandraBhedanaPranayamaPageState extends State<ChandraBhedanaPranayamaPag
           mainAxisAlignment: MainAxisAlignment.center,
           crossAxisAlignment: CrossAxisAlignment.center,
           children: [
+            if (isRecommended) ...[
+              const SizedBox(height: 4),
+            ],
             Text(
               technique['label'],
               textAlign: TextAlign.center,
               style: Theme.of(context).textTheme.titleMedium?.copyWith(
-                color: isSelected ? _brandColor.withOpacity(0.8) : Colors.blueGrey[800],
+                color: isSelected ? Colors.blue[800] : Colors.blueGrey[800],
                 fontWeight: FontWeight.w600,
               ),
             ),
@@ -237,17 +227,7 @@ class _ChandraBhedanaPranayamaPageState extends State<ChandraBhedanaPranayamaPag
               Text(
                 '${technique['inhale']}:${technique['exhale']}',
                 style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                  color: isSelected ? _brandColor : Colors.blueGrey[600],
-                ),
-              ),
-            ],
-            if (isRecommended) ...[
-              const SizedBox(height: 4),
-              Text(
-                'Recommended',
-                style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                  color: Colors.amber[700],
-                  fontWeight: FontWeight.w500,
+                  color: isSelected ? Colors.blue[600] : Colors.blueGrey[600],
                 ),
               ),
             ],
@@ -261,15 +241,15 @@ class _ChandraBhedanaPranayamaPageState extends State<ChandraBhedanaPranayamaPag
     if (technique['value'] == 'custom') {
       final result = await showCustomizationDialog(
         context,
-        initialInhale: _customInhale ?? 4,
-        initialExhale: _customExhale ?? 4,
-        initialHold: 0,
+        initialInhale: _customInhale,
+        initialExhale: _customExhale,
+        initialHold: _customExhale,
       );
       if (result != null && mounted) {
         setState(() {
           _selectedTechnique = 'custom';
-          _customInhale = result['inhale'];
-          _customExhale = result['exhale'];
+          _customInhale = result['inhale'] ?? 4;
+          _customExhale = result['exhale'] ?? 6;
         });
       }
     } else if (mounted) {
@@ -281,10 +261,10 @@ class _ChandraBhedanaPranayamaPageState extends State<ChandraBhedanaPranayamaPag
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
       decoration: BoxDecoration(
-        color: Color(0xFFE3EBF2),
+        color: Colors.blue[50],
         borderRadius: BorderRadius.circular(12),
         border: Border.all(
-          color: _brandColor.withOpacity(0.4),
+          color: Colors.blue[200]!,
           width: 1,
         ),
       ),
@@ -318,7 +298,7 @@ class _ChandraBhedanaPranayamaPageState extends State<ChandraBhedanaPranayamaPag
           value,
           style: Theme.of(context).textTheme.titleMedium?.copyWith(
             fontWeight: FontWeight.w600,
-            color: _brandColor,
+            color: Colors.blue[800],
           ),
         ),
       ],
@@ -331,55 +311,18 @@ class _ChandraBhedanaPranayamaPageState extends State<ChandraBhedanaPranayamaPag
       children: [
         _buildSectionTitle('SESSION DURATION'),
         const SizedBox(height: 12),
-        Row(
-          mainAxisAlignment: MainAxisAlignment.center,
-          children: [
-            _buildToggleOption("Rounds", !_isMinutesMode),
-            SizedBox(width: 20),
-            _buildToggleOption("Minutes", _isMinutesMode),
-          ],
-        ),
-        const SizedBox(height: 16),
         SizedBox(
-          height: 56,
+          height: 50,
           child: ListView.builder(
             scrollDirection: Axis.horizontal,
-            itemCount: _isMinutesMode
-                ? [5,10,15,20,25,30,35,40,45,50,55,60].length
-                : [5,10,15,20,25,30,35,40,45,50,55,60,65,70,75].length,
+            itemCount: _durationOptions.length,
             itemBuilder: (context, index) {
-              final options = _isMinutesMode
-                  ? [5,10,15,20,25,30,35,40,45,50,55,60]
-                  : [5,10,15,20,25,30,35,40,45,50,55,60,65,70,75];
-              final duration = options[index];
+              final duration = _durationOptions[index];
               return _buildDurationOption(duration);
             },
           ),
         ),
-        SizedBox(height: 8),
-        _buildDurationHint(),
       ],
-    );
-  }
-
-  Widget _buildToggleOption(String text, bool isActive) {
-    return GestureDetector(
-      onTap: () => setState(() => _isMinutesMode = text == "Minutes"),
-      child: Container(
-        padding: EdgeInsets.symmetric(vertical: 8, horizontal: 16),
-        decoration: BoxDecoration(
-          color: isActive ? _brandColor : Colors.transparent,
-          borderRadius: BorderRadius.circular(20),
-          border: Border.all(color: isActive ? _brandColor : Colors.grey[400]!),
-        ),
-        child: Text(
-          text,
-          style: TextStyle(
-            color: isActive ? Colors.white : Colors.black87,
-            fontWeight: isActive ? FontWeight.w500 : FontWeight.normal,
-          ),
-        ),
-      ),
     );
   }
 
@@ -393,10 +336,10 @@ class _ChandraBhedanaPranayamaPageState extends State<ChandraBhedanaPranayamaPag
           duration: const Duration(milliseconds: 200),
           width: 56,
           decoration: BoxDecoration(
-            color: isSelected ? Color(0xFFE3EBF2) : Colors.white,
+            color: isSelected ? Colors.blue[50] : Colors.white,
             borderRadius: BorderRadius.circular(10),
             border: Border.all(
-              color: isSelected ? _brandColor : Colors.grey[300]!,
+              color: isSelected ? Colors.blue[600]! : Colors.grey[300]!,
               width: isSelected ? 1.5 : 1,
             ),
           ),
@@ -406,34 +349,20 @@ class _ChandraBhedanaPranayamaPageState extends State<ChandraBhedanaPranayamaPag
               Text(
                 duration.toString(),
                 style: Theme.of(context).textTheme.titleMedium?.copyWith(
-                  color: isSelected ? _brandColor : Colors.blueGrey[800],
+                  color: isSelected ? Colors.blue[800] : Colors.blueGrey[800],
                   fontWeight: FontWeight.w600,
                 ),
               ),
               Text(
-                _isMinutesMode ? 'min' : 'rounds',
+                'min',
                 style: Theme.of(context).textTheme.labelSmall?.copyWith(
-                  color: isSelected ? _brandColor : Colors.blueGrey[500],
+                  color: isSelected ? Colors.blue[600] : Colors.blueGrey[500],
                 ),
               ),
             ],
           ),
         ),
       ),
-    );
-  }
-
-  Widget _buildDurationHint() {
-    final totalSeconds = _isMinutesMode
-        ? _selectedDuration * 60
-        : _selectedDuration * _roundSeconds;
-    final hint = _isMinutesMode
-        ? "≈ ${(totalSeconds/_roundSeconds).toStringAsFixed(0)} rounds"
-        : "≈ ${(totalSeconds/60).toStringAsFixed(1)} minutes";
-    return Text(
-        hint,
-        textAlign: TextAlign.center,
-        style: TextStyle(color: Colors.grey[600])
     );
   }
 
@@ -470,7 +399,7 @@ class _ChandraBhedanaPranayamaPageState extends State<ChandraBhedanaPranayamaPag
           decoration: BoxDecoration(
             borderRadius: BorderRadius.circular(12),
             border: Border.all(
-              color: isSelected ? _brandColor : Colors.transparent,
+              color: isSelected ? Colors.blue[600]! : Colors.transparent,
               width: 2,
             ),
           ),
@@ -558,10 +487,10 @@ class _ChandraBhedanaPranayamaPageState extends State<ChandraBhedanaPranayamaPag
           duration: const Duration(milliseconds: 200),
           padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
           decoration: BoxDecoration(
-            color: isSelected ? _brandColor : Colors.grey[100],
+            color: isSelected ? Colors.blue[600] : Colors.grey[100],
             borderRadius: BorderRadius.circular(24),
             border: Border.all(
-              color: isSelected ? _brandColor : Colors.grey[300]!,
+              color: isSelected ? Colors.blue[600]! : Colors.grey[300]!,
               width: 1,
             ),
           ),
@@ -571,13 +500,12 @@ class _ChandraBhedanaPranayamaPageState extends State<ChandraBhedanaPranayamaPag
               Icon(
                 Icons.music_note_rounded,
                 size: 16,
-                color: isSelected ? Colors.white : _brandColor,
+                color: isSelected ? Colors.white : Colors.blue[600],
               ),
               const SizedBox(width: 6),
               Text(
                 sound['name']!,
-                style: TextStyle(
-                  fontSize: 14,
+                style: Theme.of(context).textTheme.labelMedium?.copyWith(
                   color: isSelected ? Colors.white : Colors.blueGrey[800],
                 ),
               ),
@@ -589,18 +517,13 @@ class _ChandraBhedanaPranayamaPageState extends State<ChandraBhedanaPranayamaPag
   }
 
   Widget _buildBeginButton() {
-    final inhale = _selectedTechnique == '4:4' ? 4 : (_customInhale ?? 4);
-    final exhale = _selectedTechnique == '4:4' ? 4 : (_customExhale ?? 4);
-    final rounds = _isMinutesMode
-        ? (_selectedDuration * 60) ~/ (inhale + exhale)
-        : _selectedDuration;
-
-    // Get selected audio path
-    final selected = _soundOptions.firstWhere(
-          (s) => s['name'] == _selectedSound,
-      orElse: () => {'audioPath': ''},
+    final (inhale, exhale) = _parseBreathingPattern();
+    final rounds = _calculateRounds(inhale, exhale);
+    final selectedSoundOption = _soundOptions.firstWhere(
+          (sound) => sound['name'] == _selectedSound,
+      orElse: () => {'name': 'None', 'imagePath': '', 'audioPath': ''},
     );
-    final audioPath = selected['audioPath']!;
+    final audioPath = selectedSoundOption['audioPath']!;
 
     return SizedBox(
       width: double.infinity,
@@ -617,8 +540,6 @@ class _ChandraBhedanaPranayamaPageState extends State<ChandraBhedanaPranayamaPag
                     rounds: rounds,
                     imagePath: _selectedImage,
                     audioPath: audioPath,
-                    inhaleAudioPath: 'music/inhale-bell1_.mp3',
-                    exhaleAudioPath: 'music/exhale_bell.mp3',
                   ),
               transitionsBuilder:
                   (context, animation, secondaryAnimation, child) {
@@ -631,7 +552,7 @@ class _ChandraBhedanaPranayamaPageState extends State<ChandraBhedanaPranayamaPag
           );
         },
         style: ElevatedButton.styleFrom(
-          backgroundColor: _brandColor,
+          backgroundColor: Colors.blue[600],
           foregroundColor: Colors.white,
           padding: const EdgeInsets.symmetric(vertical: 16),
           shape: RoundedRectangleBorder(
@@ -650,25 +571,18 @@ class _ChandraBhedanaPranayamaPageState extends State<ChandraBhedanaPranayamaPag
       ),
     );
   }
-
   Widget _buildAboutSection() {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        _buildSectionTitle('ABOUT CHANDRA BHEDANA'),
+        _buildSectionTitle('ABOUT KAPALBHATI PRANAYAMA'),
         const SizedBox(height: 12),
-        Container(
-          padding: EdgeInsets.all(16),
-          decoration: BoxDecoration(
-            color: Colors.grey.shade50,
-            borderRadius: BorderRadius.circular(12),
-            border: Border.all(color: Colors.grey.shade200),
-          ),
-          child: Text(
-            "Chandra Bhedana Pranayama involves inhaling through the left nostril "
-                "and exhaling through the right. It is said to calm the mind, cool the body, "
-                "and balance lunar energy.",
-            style: TextStyle(fontSize: 15, height: 1.5, color: Colors.blueGrey[800]),
+        Text(
+          "Kapalbhati Pranayama, known as the 'skull shining breath', is an energizing technique that involves forceful, rapid exhalations through the nose with passive inhalations. It stimulates the abdominal organs, enhances digestive fire, clears the respiratory passages, and revitalizes the mind and body.",
+          style: TextStyle(
+              fontSize: 15,
+              height: 1.5,
+              color: Colors.blueGrey[700]
           ),
         ),
       ],
@@ -684,10 +598,9 @@ class _ChandraBhedanaPranayamaPageState extends State<ChandraBhedanaPranayamaPag
         ClipRRect(
           borderRadius: BorderRadius.circular(12),
           child: YoutubePlayer(
-            controller: _ytController,
-            aspectRatio: 16/9,
-            showVideoProgressIndicator: true,
-            progressIndicatorColor: _brandColor,
+              controller: _ytController,
+              aspectRatio: 16/9,
+              showVideoProgressIndicator: true
           ),
         ),
       ],
@@ -701,25 +614,6 @@ class _ChandraBhedanaPranayamaPageState extends State<ChandraBhedanaPranayamaPag
         _buildSectionTitle('HOW TO PRACTICE'),
         const SizedBox(height: 12),
         ..._buildInstructionSteps(),
-        const SizedBox(height: 16),
-        Center(
-          child: TextButton(
-            onPressed: () {
-              Navigator.push(
-                context,
-                MaterialPageRoute(builder: (_) => ChandraBhedanaPranayamaLearnMorePage()),
-              );
-            },
-            child: Text(
-              "Learn More →",
-              style: TextStyle(
-                  color: _brandColor,
-                  fontSize: 16,
-                  fontWeight: FontWeight.w600
-              ),
-            ),
-          ),
-        ),
       ],
     );
   }
@@ -745,7 +639,7 @@ class _ChandraBhedanaPranayamaPageState extends State<ChandraBhedanaPranayamaPag
           children: [
             CircleAvatar(
                 radius: 14,
-                backgroundColor: _brandColor,
+                backgroundColor: Colors.blue[600],
                 child: Text(
                     "$num",
                     style: const TextStyle(
@@ -777,5 +671,21 @@ class _ChandraBhedanaPranayamaPageState extends State<ChandraBhedanaPranayamaPag
         letterSpacing: 0.8,
       ),
     );
+  }
+
+  (int inhale, int exhale) _parseBreathingPattern() {
+    if (_selectedTechnique == 'custom') {
+      return (_customInhale, _customExhale);
+    }
+
+    final parts = _selectedTechnique.split(':');
+    final inhale = parts.isNotEmpty ? int.tryParse(parts[0]) ?? 4 : 4;
+    final exhale = parts.length > 1 ? int.tryParse(parts[1]) ?? 6 : 6;
+    return (inhale, exhale);
+  }
+
+  int _calculateRounds(int inhale, int exhale) {
+    final rounds = (_selectedDuration * 60) ~/ (inhale + exhale);
+    return rounds < 1 ? 1 : rounds;
   }
 }

@@ -16,8 +16,10 @@ class _BhramariBreathingPageState extends State<BhramariBreathingPage> {
   String _selectedTechnique = '5:8';
   String _selectedImage = 'assets/images/option3.png';
   int _selectedDuration = 5;
+  String _selectedSound = 'None';
   int _customInhale = 5;
   int _customExhale = 8;
+  final ScrollController _soundController = ScrollController();
   late YoutubePlayerController _ytController;
 
   // Constants
@@ -26,6 +28,7 @@ class _BhramariBreathingPageState extends State<BhramariBreathingPage> {
     {'name': '', 'path': 'assets/images/option1.png'},
     {'name': '', 'path': 'assets/images/option2.png'},
   ];
+
 
   static const _techniques = [
     {'value': '5:8', 'label': 'Recommended', 'inhale': 5, 'exhale': 8},
@@ -60,11 +63,13 @@ class _BhramariBreathingPageState extends State<BhramariBreathingPage> {
     for (final image in _imageOptions) {
       futures.add(precacheImage(AssetImage(image['path']!), context));
     }
+
     await Future.wait(futures);
   }
 
   @override
   void dispose() {
+    _soundController.dispose();
     _ytController.dispose();
     super.dispose();
   }
@@ -108,13 +113,16 @@ class _BhramariBreathingPageState extends State<BhramariBreathingPage> {
           _buildDurationSection(),
           const SizedBox(height: 24),
           _buildVisualizationSection(),
-          const SizedBox(height: 32),
+          const SizedBox(height: 24),
+
           _buildBeginButton(),
+          const SizedBox(height: 32),
+          _buildAboutSection(),
+          const SizedBox(height: 24),
+          _buildVideoSection(),
           const SizedBox(height: 24),
           _buildPracticeGuide(),
           const SizedBox(height: 24),
-          //_buildVideoSection(),
-          //const SizedBox(height: 24),
         ],
       ),
     );
@@ -189,6 +197,9 @@ class _BhramariBreathingPageState extends State<BhramariBreathingPage> {
           mainAxisAlignment: MainAxisAlignment.center,
           crossAxisAlignment: CrossAxisAlignment.center,
           children: [
+            if (isRecommended) ...[
+              const SizedBox(height: 4),
+            ],
             Text(
               technique['label'],
               textAlign: TextAlign.center,
@@ -212,14 +223,13 @@ class _BhramariBreathingPageState extends State<BhramariBreathingPage> {
     );
   }
 
-
   Future<void> _handleTechniqueSelection(Map<String, dynamic> technique) async {
     if (technique['value'] == 'custom') {
       final result = await showCustomizationDialog(
         context,
         initialInhale: _customInhale,
         initialExhale: _customExhale,
-        initialHold:_customExhale,
+        initialHold: _customExhale,
       );
       if (result != null && mounted) {
         setState(() {
@@ -431,6 +441,46 @@ class _BhramariBreathingPageState extends State<BhramariBreathingPage> {
     );
   }
 
+
+  Widget _buildSoundOption(Map<String, String> sound) {
+    final isSelected = _selectedSound == sound['name'];
+    return Padding(
+      padding: const EdgeInsets.only(right: 8),
+      child: GestureDetector(
+        onTap: () => setState(() => _selectedSound = sound['name']!),
+        child: AnimatedContainer(
+          duration: const Duration(milliseconds: 200),
+          padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
+          decoration: BoxDecoration(
+            color: isSelected ? Colors.blue[600] : Colors.grey[100],
+            borderRadius: BorderRadius.circular(24),
+            border: Border.all(
+              color: isSelected ? Colors.blue[600]! : Colors.grey[300]!,
+              width: 1,
+            ),
+          ),
+          child: Row(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Icon(
+                Icons.music_note_rounded,
+                size: 16,
+                color: isSelected ? Colors.white : Colors.blue[600],
+              ),
+              const SizedBox(width: 6),
+              Text(
+                sound['name']!,
+                style: Theme.of(context).textTheme.labelMedium?.copyWith(
+                  color: isSelected ? Colors.white : Colors.blueGrey[800],
+                ),
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+
   Widget _buildBeginButton() {
     final (inhale, exhale) = _parseBreathingPattern();
     final rounds = _calculateRounds(inhale, exhale);
@@ -449,6 +499,7 @@ class _BhramariBreathingPageState extends State<BhramariBreathingPage> {
                     exhaleDuration: exhale,
                     rounds: rounds,
                     imagePath: _selectedImage,
+                     // Add this parameter
                   ),
               transitionsBuilder:
                   (context, animation, secondaryAnimation, child) {
@@ -478,6 +529,42 @@ class _BhramariBreathingPageState extends State<BhramariBreathingPage> {
           ),
         ),
       ),
+    );
+  }
+  Widget _buildAboutSection() {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        _buildSectionTitle('ABOUT BHRAHMARI '),
+        const SizedBox(height: 12),
+        Text(
+          "Bhramari involves inhaling deeply and exhaling with a humming bee-like sound. It soothes the mind, reduces stress, and helps release emotional tension through vibration and breath.",
+          style: TextStyle(
+              fontSize: 15,
+              height: 1.5,
+              color: Colors.blueGrey[700]
+          ),
+
+        ),
+      ],
+    );
+  }
+
+  Widget _buildVideoSection() {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        _buildSectionTitle('VIDEO DEMONSTRATION'),
+        const SizedBox(height: 12),
+        ClipRRect(
+          borderRadius: BorderRadius.circular(12),
+          child: YoutubePlayer(
+              controller: _ytController,
+              aspectRatio: 16/9,
+              showVideoProgressIndicator: true
+          ),
+        ),
+      ],
     );
   }
 

@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:meditation_app/Breathing_Pages/bilateral_screen.dart';
 import 'package:meditation_app/Customization/customize.dart';
+import 'package:youtube_player_flutter/youtube_player_flutter.dart';
 
 class CompleteBreathingPage extends StatefulWidget {
   const CompleteBreathingPage({super.key});
@@ -19,6 +20,8 @@ class _CompleteBreathingPageState extends State<CompleteBreathingPage> {
   int _customInhale = 4;
   int _customExhale = 6;
   final ScrollController _soundController = ScrollController();
+  final String _videoUrl = "https://www.youtube.com/watch?v=YOUR_SURYA_VIDEO_ID";
+  late YoutubePlayerController _ytController;
 
   // Constants
   static const _imageOptions = [
@@ -59,6 +62,10 @@ class _CompleteBreathingPageState extends State<CompleteBreathingPage> {
   @override
   void initState() {
     super.initState();
+    _ytController = YoutubePlayerController(
+      initialVideoId: YoutubePlayer.convertUrlToId(_videoUrl)!,
+      flags: YoutubePlayerFlags(autoPlay: false, mute: false),
+    );
     _precacheImages();
   }
 
@@ -77,6 +84,7 @@ class _CompleteBreathingPageState extends State<CompleteBreathingPage> {
   @override
   void dispose() {
     _soundController.dispose();
+    _ytController.dispose();
     super.dispose();
   }
 
@@ -123,6 +131,10 @@ class _CompleteBreathingPageState extends State<CompleteBreathingPage> {
           _buildSoundSection(),
           const SizedBox(height: 32),
           _buildBeginButton(),
+          const SizedBox(height: 24),
+          _buildAboutSection(),
+          const SizedBox(height: 24),
+          _buildVideoSection(),
           const SizedBox(height: 24),
           _buildPracticeGuide(),
           const SizedBox(height: 24),
@@ -525,6 +537,41 @@ class _CompleteBreathingPageState extends State<CompleteBreathingPage> {
           ),
         ),
       ),
+    );
+  }
+  Widget _buildAboutSection() {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        _buildSectionTitle('ABOUT SURYA BHEDANA'),
+        const SizedBox(height: 12),
+        Text(
+          "Complete breathing combines abdominal, chest, and clavicular breathing in a single inhale. It maximizes lung capacity, improves oxygen flow, and promotes physical and mental balance..",
+          style: TextStyle(
+              fontSize: 15,
+              height: 1.5,
+              color: Colors.blueGrey[700]
+          ),
+        ),
+      ],
+    );
+  }
+
+  Widget _buildVideoSection() {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        _buildSectionTitle('VIDEO DEMONSTRATION'),
+        const SizedBox(height: 12),
+        ClipRRect(
+          borderRadius: BorderRadius.circular(12),
+          child: YoutubePlayer(
+              controller: _ytController,
+              aspectRatio: 16/9,
+              showVideoProgressIndicator: true
+          ),
+        ),
+      ],
     );
   }
   Widget _buildPracticeGuide() {

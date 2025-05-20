@@ -60,7 +60,6 @@ class _ContributorsPageState extends State<ContributorsPage> with SingleTickerPr
   ];
 
   int _currentIndex = 0;
-  bool _showDonateSection = false;
 
   @override
   void initState() {
@@ -81,15 +80,6 @@ class _ContributorsPageState extends State<ContributorsPage> with SingleTickerPr
   void _onContributorTap(int index) {
     setState(() {
       _currentIndex = index;
-      _showDonateSection = false;
-      _controller.reset();
-      _controller.forward();
-    });
-  }
-
-  void _toggleDonateSection() {
-    setState(() {
-      _showDonateSection = true;
       _controller.reset();
       _controller.forward();
     });
@@ -123,20 +113,6 @@ class _ContributorsPageState extends State<ContributorsPage> with SingleTickerPr
         backgroundColor: AppColors.primary,
         foregroundColor: Colors.white,
         elevation: 0,
-        actions: [
-          // Donate button in app bar
-          TextButton.icon(
-            onPressed: _toggleDonateSection,
-            icon: const Icon(Icons.favorite, color: Colors.red),
-            label: const Text(
-              'Donate',
-              style: TextStyle(
-                color: Colors.white,
-                fontWeight: FontWeight.bold,
-              ),
-            ),
-          ),
-        ],
       ),
       body: Column(
         children: [
@@ -161,53 +137,8 @@ class _ContributorsPageState extends State<ContributorsPage> with SingleTickerPr
             child: ListView.builder(
               scrollDirection: Axis.horizontal,
               padding: const EdgeInsets.symmetric(horizontal: 16),
-              itemCount: contributors.length + 1, // +1 for donate button
+              itemCount: contributors.length,
               itemBuilder: (context, index) {
-                // Last item is the donate button
-                if (index == contributors.length) {
-                  return GestureDetector(
-                    onTap: _toggleDonateSection,
-                    child: Container(
-                      width: 80,
-                      margin: const EdgeInsets.only(right: 16),
-                      child: Column(
-                        children: [
-                          AnimatedContainer(
-                            duration: const Duration(milliseconds: 300),
-                            padding: const EdgeInsets.all(2),
-                            decoration: BoxDecoration(
-                              shape: BoxShape.circle,
-                              border: Border.all(
-                                color: _showDonateSection
-                                    ? Colors.red
-                                    : Colors.transparent,
-                                width: 2,
-                              ),
-                            ),
-                            child: CircleAvatar(
-                              radius: 30,
-                              backgroundColor: Colors.red.shade100,
-                              child: const Icon(
-                                Icons.favorite,
-                                color: Colors.red,
-                                size: 35,
-                              ),
-                            ),
-                          ),
-                          const SizedBox(height: 6),
-                          const Text(
-                            'Donate',
-                            style: TextStyle(
-                              color: Colors.white,
-                            ),
-                            overflow: TextOverflow.ellipsis,
-                          ),
-                        ],
-                      ),
-                    ),
-                  );
-                }
-
                 // Regular contributor items with initials instead of images
                 final contributor = contributors[index];
                 final color = getContributorColor(contributor.name);
@@ -226,7 +157,7 @@ class _ContributorsPageState extends State<ContributorsPage> with SingleTickerPr
                           decoration: BoxDecoration(
                             shape: BoxShape.circle,
                             border: Border.all(
-                              color: _currentIndex == index && !_showDonateSection
+                              color: _currentIndex == index
                                   ? Colors.white
                                   : Colors.transparent,
                               width: 2,
@@ -250,7 +181,7 @@ class _ContributorsPageState extends State<ContributorsPage> with SingleTickerPr
                           contributor.name.split(' ')[0],
                           style: TextStyle(
                             color: Colors.white,
-                            fontWeight: _currentIndex == index && !_showDonateSection
+                            fontWeight: _currentIndex == index
                                 ? FontWeight.bold
                                 : FontWeight.normal,
                           ),
@@ -264,7 +195,7 @@ class _ContributorsPageState extends State<ContributorsPage> with SingleTickerPr
             ),
           ),
 
-          // Contributor or Donate details
+          // Contributor details
           Expanded(
             child: AnimatedBuilder(
               animation: _controller,
@@ -283,9 +214,7 @@ class _ContributorsPageState extends State<ContributorsPage> with SingleTickerPr
                   ),
                 );
               },
-              child: _showDonateSection
-                  ? _buildDonateSection(context, theme)
-                  : _buildContributorDetails(context, theme),
+              child: _buildContributorDetails(context, theme),
             ),
           ),
         ],
@@ -377,243 +306,6 @@ class _ContributorsPageState extends State<ContributorsPage> with SingleTickerPr
       ),
     );
   }
-
-  Widget _buildDonateSection(BuildContext context, ThemeData theme) {
-    return Container(
-      padding: const EdgeInsets.all(24),
-      child: SingleChildScrollView(
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.center,
-          children: [
-            // Heart icon (keeping this icon for the donate section)
-            Container(
-              width: 120,
-              height: 120,
-              decoration: BoxDecoration(
-                shape: BoxShape.circle,
-                color: Colors.red.shade50,
-                boxShadow: [
-                  BoxShadow(
-                    color: Colors.red.withOpacity(0.3),
-                    blurRadius: 20,
-                    spreadRadius: 5,
-                  ),
-                ],
-              ),
-              child: const Icon(
-                Icons.favorite,
-                color: Colors.red,
-                size: 70,
-              ),
-            ),
-            const SizedBox(height: 24),
-
-            // Title
-            Text(
-              'Support Our Project',
-              style: theme.textTheme.headlineMedium?.copyWith(
-                fontWeight: FontWeight.bold,
-                color: Colors.red.shade700,
-              ),
-            ),
-            const SizedBox(height: 16),
-
-            // Description
-            Container(
-              padding: const EdgeInsets.all(20),
-              decoration: BoxDecoration(
-                color: Colors.white,
-                borderRadius: BorderRadius.circular(20),
-                boxShadow: [
-                  BoxShadow(
-                    color: Colors.black.withOpacity(0.05),
-                    blurRadius: 10,
-                    offset: const Offset(0, 5),
-                  ),
-                ],
-              ),
-              child: const Text(
-                'Your donations help us continue building and improving this project. Every contribution, no matter how small, makes a big difference. Thank you for your support!',
-                style: TextStyle(
-                  color: AppColors.textDark,
-                  fontSize: 16,
-                ),
-                textAlign: TextAlign.center,
-              ),
-            ),
-            const SizedBox(height: 30),
-
-            // QR Code
-            Container(
-              width: 200,
-              height: 200,
-              padding: const EdgeInsets.all(10),
-              decoration: BoxDecoration(
-                color: Colors.white,
-                borderRadius: BorderRadius.circular(20),
-                boxShadow: [
-                  BoxShadow(
-                    color: Colors.black.withOpacity(0.1),
-                    blurRadius: 10,
-                    offset: const Offset(0, 5),
-                  ),
-                ],
-              ),
-              child: CustomPaint(
-                painter: QRCodePainter(),
-                size: const Size(180, 180),
-              ),
-            ),
-            const SizedBox(height: 20),
-
-            // Donation buttons
-            Row(
-              mainAxisAlignment: MainAxisAlignment.center,
-              children: [
-                ElevatedButton.icon(
-                  icon: const Icon(Icons.attach_money),
-                  label: const Text('Donate Now'),
-                  onPressed: () {
-                    ScaffoldMessenger.of(context).showSnackBar(
-                      const SnackBar(content: Text('Opening donation page...')),
-                    );
-                  },
-                  style: ElevatedButton.styleFrom(
-                    backgroundColor: Colors.red.shade600,
-                    foregroundColor: Colors.white,
-                    padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 12),
-                    shape: RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(30),
-                    ),
-                    elevation: 3,
-                  ),
-                ),
-                const SizedBox(width: 16),
-                OutlinedButton.icon(
-                  icon: const Icon(Icons.share),
-                  label: const Text('Share'),
-                  onPressed: () {
-                    ScaffoldMessenger.of(context).showSnackBar(
-                      const SnackBar(content: Text('Opening share options...')),
-                    );
-                  },
-                  style: OutlinedButton.styleFrom(
-                    foregroundColor: AppColors.primary,
-                    side: BorderSide(color: AppColors.primary),
-                    padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 12),
-                    shape: RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(30),
-                    ),
-                  ),
-                ),
-              ],
-            ),
-          ],
-        ),
-      ),
-    );
-  }
-}
-
-// Custom QR Code Painter (unchanged)
-class QRCodePainter extends CustomPainter {
-  @override
-  void paint(Canvas canvas, Size size) {
-    final double cellSize = size.width / 25;
-
-    // Draw QR code cells (simplified, just for visual representation)
-    final Paint blackPaint = Paint()..color = Colors.black;
-
-    // Draw pattern finder at top left
-    _drawFinderPattern(canvas, 0, 0, cellSize, blackPaint);
-
-    // Draw pattern finder at top right
-    _drawFinderPattern(canvas, size.width - 7 * cellSize, 0, cellSize, blackPaint);
-
-    // Draw pattern finder at bottom left
-    _drawFinderPattern(canvas, 0, size.height - 7 * cellSize, cellSize, blackPaint);
-
-    // Draw alignment pattern
-    _drawAlignmentPattern(canvas, size.width - 9 * cellSize, size.height - 9 * cellSize, cellSize, blackPaint);
-
-    // Draw timing patterns
-    for (int i = 8; i < 17; i++) {
-      if (i % 2 == 0) {
-        canvas.drawRect(
-          Rect.fromLTWH(i * cellSize, 6 * cellSize, cellSize, cellSize),
-          blackPaint,
-        );
-        canvas.drawRect(
-          Rect.fromLTWH(6 * cellSize, i * cellSize, cellSize, cellSize),
-          blackPaint,
-        );
-      }
-    }
-
-    // Draw random data cells for visual effect
-    final Random random = Random(42); // Fixed seed for consistent pattern
-    for (int i = 0; i < 25; i++) {
-      for (int j = 0; j < 25; j++) {
-        // Skip areas where finder patterns are located
-        if ((i < 7 && j < 7) ||
-            (i < 7 && j > 17) ||
-            (i > 17 && j < 7)) {
-          continue;
-        }
-
-        // Draw random cells with 40% probability
-        if (random.nextDouble() < 0.4) {
-          canvas.drawRect(
-            Rect.fromLTWH(i * cellSize, j * cellSize, cellSize, cellSize),
-            blackPaint,
-          );
-        }
-      }
-    }
-  }
-
-  void _drawFinderPattern(Canvas canvas, double x, double y, double cellSize, Paint paint) {
-    // Outer square
-    canvas.drawRect(
-      Rect.fromLTWH(x, y, cellSize * 7, cellSize * 7),
-      paint,
-    );
-
-    // White middle square
-    canvas.drawRect(
-      Rect.fromLTWH(x + cellSize, y + cellSize, cellSize * 5, cellSize * 5),
-      Paint()..color = Colors.white,
-    );
-
-    // Inner black square
-    canvas.drawRect(
-      Rect.fromLTWH(x + cellSize * 2, y + cellSize * 2, cellSize * 3, cellSize * 3),
-      paint,
-    );
-  }
-
-  void _drawAlignmentPattern(Canvas canvas, double x, double y, double cellSize, Paint paint) {
-    // Outer square
-    canvas.drawRect(
-      Rect.fromLTWH(x, y, cellSize * 5, cellSize * 5),
-      paint,
-    );
-
-    // White middle square
-    canvas.drawRect(
-      Rect.fromLTWH(x + cellSize, y + cellSize, cellSize * 3, cellSize * 3),
-      Paint()..color = Colors.white,
-    );
-
-    // Inner black square
-    canvas.drawRect(
-      Rect.fromLTWH(x + cellSize * 2, y + cellSize * 2, cellSize, cellSize),
-      paint,
-    );
-  }
-
-  @override
-  bool shouldRepaint(covariant CustomPainter oldDelegate) => false;
 }
 
 class _SocialButton extends StatelessWidget {

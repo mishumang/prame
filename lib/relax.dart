@@ -5,9 +5,11 @@ import 'package:firebase_auth/firebase_auth.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:meditation_app/Instruction/instruction_abdo.dart';
 import 'package:meditation_app/Instruction/instruction_bhramari.dart';
+import 'package:meditation_app/Instruction/instruction_bhastrika.dart';
 import 'package:meditation_app/Instruction/instruction_chandra.dart';
 import 'package:meditation_app/Instruction/instruction_complete.dart';
 import 'package:meditation_app/Instruction/instruction_chest.dart';
+import 'package:meditation_app/Instruction/instruction_kapal.dart';
 import 'package:meditation_app/Instruction/instruction_nadi.dart';
 import 'package:meditation_app/Instruction/instruction_sheetali.dart';
 import 'package:meditation_app/Instruction/instruction_sheetkari.dart';
@@ -353,6 +355,24 @@ class _MeditationScreenState extends State<MeditationScreen> {
       {
         'type': 'breathing',
         'item': _BreathingItem(
+          "Bhastrika\nPranayama",
+          ['assets/images/11.png'],
+          [Colors.teal[600]!, Colors.teal[300]!],
+          BhastrikaBreadthingPage(),
+        )
+      },
+      {
+        'type': 'breathing',
+        'item': _BreathingItem(
+          "Kapalbhati\nPranayama",
+          ['assets/images/19.png'],
+          [Colors.teal[500]!, Colors.teal[200]!],
+          KapalbhatiPranayamaPage(),
+        )
+      },
+      {
+        'type': 'breathing',
+        'item': _BreathingItem(
           "Sheetali\nPranayama",
           ['assets/images/13.png'],
           [Colors.teal[300]!, Colors.teal[600]!],
@@ -383,6 +403,7 @@ class _MeditationScreenState extends State<MeditationScreen> {
           BoxBreathingPage(),
         )
       },
+
       // Add remaining wisdom card
       {'type': 'wisdom', 'item': wisdomItems[2]},
     ];

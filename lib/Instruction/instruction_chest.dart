@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:meditation_app/Breathing_Pages/bilateral_screen.dart';
 import 'package:meditation_app/Customization/customize.dart';
+import 'package:youtube_player_flutter/youtube_player_flutter.dart';
 
 class ChestBreathingPage extends StatefulWidget {
   const ChestBreathingPage({super.key});
@@ -18,7 +19,9 @@ class _ChestBreathingPageState extends State<ChestBreathingPage> {
   String _selectedSound = 'None';
   int _customInhale = 4;
   int _customExhale = 6;
+  final String _videoUrl = "https://www.youtube.com/watch?v=YOUR_SURYA_VIDEO_ID";
   final ScrollController _soundController = ScrollController();
+  late YoutubePlayerController _ytController;
 
   // Constants
   static const _imageOptions = [
@@ -47,6 +50,10 @@ class _ChestBreathingPageState extends State<ChestBreathingPage> {
   @override
   void initState() {
     super.initState();
+    _ytController = YoutubePlayerController(
+      initialVideoId: YoutubePlayer.convertUrlToId(_videoUrl)!,
+      flags: YoutubePlayerFlags(autoPlay: false, mute: false),
+    );
     _precacheImages();
   }
   static const _instructionSteps = [
@@ -73,6 +80,7 @@ class _ChestBreathingPageState extends State<ChestBreathingPage> {
   @override
   void dispose() {
     _soundController.dispose();
+    _ytController.dispose();
     super.dispose();
   }
 
@@ -119,6 +127,10 @@ class _ChestBreathingPageState extends State<ChestBreathingPage> {
           _buildSoundSection(),
           const SizedBox(height: 32),
           _buildBeginButton(),
+          const SizedBox(height: 24),
+          _buildAboutSection(),
+          const SizedBox(height: 24),
+          _buildVideoSection(),
           const SizedBox(height: 24),
           _buildPracticeGuide(),
           const SizedBox(height: 24),
@@ -517,7 +529,41 @@ class _ChestBreathingPageState extends State<ChestBreathingPage> {
       ),
     );
   }
+  Widget _buildAboutSection() {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        _buildSectionTitle('ABOUT CHEST BREATHING'),
+        const SizedBox(height: 12),
+        Text(
+          "Chest breathing involves expanding the rib cage and upper lungs while inhaling. It supports short, quick breaths that may increase alertness but can contribute to tension if overused..",
+          style: TextStyle(
+              fontSize: 15,
+              height: 1.5,
+              color: Colors.blueGrey[700]
+          ),
+        ),
+      ],
+    );
+  }
 
+  Widget _buildVideoSection() {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        _buildSectionTitle('VIDEO DEMONSTRATION'),
+        const SizedBox(height: 12),
+        ClipRRect(
+          borderRadius: BorderRadius.circular(12),
+          child: YoutubePlayer(
+              controller: _ytController,
+              aspectRatio: 16/9,
+              showVideoProgressIndicator: true
+          ),
+        ),
+      ],
+    );
+  }
   Widget _buildPracticeGuide() {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,

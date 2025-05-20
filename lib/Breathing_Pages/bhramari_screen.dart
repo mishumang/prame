@@ -6,12 +6,14 @@ class BhramariScreen extends StatefulWidget {
   final int inhaleDuration;
   final int exhaleDuration;
   final int rounds;
+  final String imagePath;
 
   const BhramariScreen({
     Key? key,
     required this.inhaleDuration,
     required this.exhaleDuration,
-    required this.rounds, required String imagePath,
+    required this.rounds,
+    required this.imagePath,
   }) : super(key: key);
 
   @override
@@ -28,6 +30,11 @@ class _BhramariScreenState extends State<BhramariScreen>
   String breathingText = "Get Ready";
   int _currentRound = 0;
   String _currentPhase = "prepare";
+
+  // Countdown variables
+  bool _isCountingDown = true;
+  int _countdownSeconds = 3;
+  Timer? _countdownTimer;
 
   // Humming sound file path (place this in your assets/audio folder)
   final String _hummingSoundPath = 'assets/music/hmmsound_.mp3';
@@ -54,6 +61,33 @@ class _BhramariScreenState extends State<BhramariScreen>
 
     _controller.addListener(_handleAnimationProgress);
     _controller.addStatusListener(_handleAnimationStatus);
+
+    // Start countdown
+    _startCountdown();
+  }
+
+  void _startCountdown() {
+    setState(() {
+      _isCountingDown = true;
+      _countdownSeconds = 3;
+      breathingText = "$_countdownSeconds";
+    });
+
+    _countdownTimer = Timer.periodic(const Duration(seconds: 1), (timer) {
+      if (_countdownSeconds > 1) {
+        setState(() {
+          _countdownSeconds--;
+          breathingText = "$_countdownSeconds";
+        });
+      } else {
+        timer.cancel();
+        setState(() {
+          _isCountingDown = false;
+          isRunning = true;
+        });
+        _startBreathingCycle();
+      }
+    });
   }
 
   Future<void> _loadAudio() async {
@@ -147,6 +181,12 @@ class _BhramariScreenState extends State<BhramariScreen>
       if (_currentRound >= widget.rounds) {
         _currentRound = 0;
       }
+
+      if (_isCountingDown) {
+        // If currently counting down, cancel it
+        _countdownTimer?.cancel();
+      }
+
       setState(() {
         isRunning = true;
       });
@@ -202,7 +242,11 @@ class _BhramariScreenState extends State<BhramariScreen>
         double progress = _controller.value;
         double scale;
 
-        if (progress <= _inhaleFraction) {
+        if (_isCountingDown) {
+          // Pulse animation during countdown
+          final pulseValue = DateTime.now().millisecondsSinceEpoch % 1000 / 1000;
+          scale = 1.0 + 0.1 * (pulseValue < 0.5 ? pulseValue * 2 : (1 - pulseValue) * 2);
+        } else if (progress <= _inhaleFraction) {
           scale = 1.0 + 0.5 * (progress / _inhaleFraction);
         } else {
           scale = 1.5 - 0.5 * ((progress - _inhaleFraction) / (1 - _inhaleFraction));
@@ -218,8 +262,8 @@ class _BhramariScreenState extends State<BhramariScreen>
         width: 250,
         decoration: BoxDecoration(
           shape: BoxShape.circle,
-          image: const DecorationImage(
-            image: AssetImage('assets/images/muladhara_chakra3.png'),
+          image: DecorationImage(
+            image: AssetImage(widget.imagePath),
             fit: BoxFit.cover,
           ),
           boxShadow: [
@@ -235,15 +279,35 @@ class _BhramariScreenState extends State<BhramariScreen>
   }
 
   Widget _buildControlButtons() {
-    if (_currentRound >= widget.rounds) {
+    if (_isCountingDown) {
+      return ElevatedButton(
+        onPressed: () {
+          _countdownTimer?.cancel();
+          setState(() {
+            _isCountingDown = false;
+            isRunning = false;
+            breathingText = "Get Ready";
+          });
+        },
+        style: ElevatedButton.styleFrom(
+          backgroundColor: Colors.redAccent,
+          padding: const EdgeInsets.symmetric(horizontal: 30, vertical: 15),
+          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(30)),
+          elevation: 10,
+        ),
+        child: const Text(
+          "Skip",
+          style: TextStyle(fontSize: 20),
+        ),
+      );
+    } else if (_currentRound >= widget.rounds) {
       return ElevatedButton(
         onPressed: () {
           setState(() {
             _currentRound = 0;
-            isRunning = true;
+            isRunning = false;
           });
-          _controller.reset();
-          _startBreathingCycle();
+          _startCountdown();
         },
         style: ElevatedButton.styleFrom(
           backgroundColor: Colors.teal,
@@ -278,6 +342,7 @@ class _BhramariScreenState extends State<BhramariScreen>
   void dispose() {
     _controller.dispose();
     _hummingPlayer.dispose();
+    _countdownTimer?.cancel();
     super.dispose();
   }
 
@@ -311,13 +376,15 @@ class _BhramariScreenState extends State<BhramariScreen>
               child: Column(
                 mainAxisAlignment: MainAxisAlignment.spaceAround,
                 children: [
-                  _buildTextDisplay(breathingText),
+                  _buildTextDisplay(_isCountingDown ? "$_countdownSeconds" : breathingText),
                   const SizedBox(height: 20),
                   _buildBreathingImage(),
                   const SizedBox(height: 50),
                   _buildControlButtons(),
                   Text(
-                    "Round: ${_currentRound < widget.rounds ? _currentRound + 1 : widget.rounds} / ${widget.rounds}",
+                    _isCountingDown
+                        ? "Prepare to begin"
+                        : "Round: ${_currentRound < widget.rounds ? _currentRound + 1 : widget.rounds} / ${widget.rounds}",
                     style: const TextStyle(
                       color: Colors.white,
                       fontSize: 18,

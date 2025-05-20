@@ -7,6 +7,7 @@ import 'package:meditation_app/greeting/login_page.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:url_launcher/url_launcher.dart';
 import 'contributers.dart';
+import 'donate.dart';
 import 'package:image_picker/image_picker.dart';
 import 'dart:io';
 import 'package:path_provider/path_provider.dart';
@@ -419,6 +420,20 @@ class _MeditationProfileState extends State<MeditationProfile> {
     return Column(
       children: [
         _buildNavCard(
+          title: 'Donate',
+          subtitle: 'Support Yoga Mandir\'s charitable mission',
+          icon: Icons.volunteer_activism,
+          primaryBlue: primaryBlue,
+          lightBlue: lightBlue,
+          onTap: () {
+            Navigator.push(
+              context,
+              MaterialPageRoute(builder: (context) => DonatePage()),
+            );
+          },
+        ),
+        SizedBox(height: 16),
+        _buildNavCard(
           title: 'View Favorite Courses',
           subtitle: 'Access your saved meditation practices',
           icon: Icons.favorite_rounded,
@@ -431,6 +446,7 @@ class _MeditationProfileState extends State<MeditationProfile> {
             );
           },
         ),
+        // The rest of your navigation cards remain unchanged
         SizedBox(height: 16),
         _buildNavCard(
           title: 'About Us',
