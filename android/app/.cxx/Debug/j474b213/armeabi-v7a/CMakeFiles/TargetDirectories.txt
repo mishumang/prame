@@ -1,0 +1,2 @@
+D:/prame-main/android/app/.cxx/Debug/j474b213/armeabi-v7a/CMakeFiles/edit_cache.dir
+D:/prame-main/android/app/.cxx/Debug/j474b213/armeabi-v7a/CMakeFiles/rebuild_cache.dir

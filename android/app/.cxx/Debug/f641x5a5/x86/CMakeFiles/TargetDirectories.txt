@@ -1,0 +1,2 @@
+D:/pranayama_-new_prame/android/app/.cxx/Debug/f641x5a5/x86/CMakeFiles/edit_cache.dir
+D:/pranayama_-new_prame/android/app/.cxx/Debug/f641x5a5/x86/CMakeFiles/rebuild_cache.dir

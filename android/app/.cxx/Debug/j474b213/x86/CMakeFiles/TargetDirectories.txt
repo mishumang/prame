@@ -1,0 +1,2 @@
+D:/prame-main/android/app/.cxx/Debug/j474b213/x86/CMakeFiles/edit_cache.dir
+D:/prame-main/android/app/.cxx/Debug/j474b213/x86/CMakeFiles/rebuild_cache.dir
