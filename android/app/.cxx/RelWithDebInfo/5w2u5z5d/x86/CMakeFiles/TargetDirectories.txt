@@ -1,0 +1,2 @@
+D:/prame-main/android/app/.cxx/RelWithDebInfo/5w2u5z5d/x86/CMakeFiles/edit_cache.dir
+D:/prame-main/android/app/.cxx/RelWithDebInfo/5w2u5z5d/x86/CMakeFiles/rebuild_cache.dir
