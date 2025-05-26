@@ -36,9 +36,6 @@ class _SheetkariPranayamaPageState extends State<SheetkariPranayamaPage> {
   String _selectedSound = 'None';
   int? _customInhale = 4;
   int? _customExhale = 4;
-  bool _isMinutesMode = true;
-
-
 
   // Scroll controllers
   final ScrollController _soundController = ScrollController();
@@ -79,7 +76,6 @@ class _SheetkariPranayamaPageState extends State<SheetkariPranayamaPage> {
   @override
   void initState() {
     super.initState();
-
     _precacheImages();
   }
 
@@ -96,7 +92,6 @@ class _SheetkariPranayamaPageState extends State<SheetkariPranayamaPage> {
 
   @override
   void dispose() {
-
     _soundController.dispose();
     super.dispose();
   }
@@ -151,7 +146,6 @@ class _SheetkariPranayamaPageState extends State<SheetkariPranayamaPage> {
           const SizedBox(height: 32),
           _buildAboutSection(),
           const SizedBox(height: 24),
-
           _buildPracticeGuide(),
           const SizedBox(height: 24),
           _buildLearnMoreButton(),
@@ -329,15 +323,6 @@ class _SheetkariPranayamaPageState extends State<SheetkariPranayamaPage> {
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         _buildSectionTitle('SESSION DURATION'),
-        const SizedBox(height: 8),
-        Row(
-          mainAxisAlignment: MainAxisAlignment.center,
-          children: [
-            _buildToggleOption('Rounds', !_isMinutesMode),
-            const SizedBox(width: 20),
-            _buildToggleOption('Minutes', _isMinutesMode),
-          ],
-        ),
         const SizedBox(height: 12),
         SizedBox(
           height: 50,
@@ -350,33 +335,7 @@ class _SheetkariPranayamaPageState extends State<SheetkariPranayamaPage> {
             },
           ),
         ),
-        const SizedBox(height: 8),
-        Center(child: _buildDurationHint()),
       ],
-    );
-  }
-
-  Widget _buildToggleOption(String label, bool active) {
-    return GestureDetector(
-      onTap: () => setState(() {
-        _isMinutesMode = label == 'Minutes';
-        _selectedDuration = 5;
-      }),
-      child: Container(
-        padding: const EdgeInsets.symmetric(vertical: 8, horizontal: 16),
-        decoration: BoxDecoration(
-          color: active ? Colors.blue[600] : Colors.transparent,
-          borderRadius: BorderRadius.circular(20),
-          border: Border.all(color: active ? Colors.blue[600]! : Colors.grey.shade400),
-        ),
-        child: Text(
-          label,
-          style: TextStyle(
-            color: active ? Colors.white : Colors.black87,
-            fontWeight: active ? FontWeight.w500 : FontWeight.normal,
-          ),
-        ),
-      ),
     );
   }
 
@@ -408,7 +367,7 @@ class _SheetkariPranayamaPageState extends State<SheetkariPranayamaPage> {
                 ),
               ),
               Text(
-                _isMinutesMode ? 'min' : 'rounds',
+                'min',
                 style: Theme.of(context).textTheme.labelSmall?.copyWith(
                   color: isSelected ? Colors.blue[600] : Colors.blueGrey[500],
                 ),
@@ -418,32 +377,6 @@ class _SheetkariPranayamaPageState extends State<SheetkariPranayamaPage> {
         ),
       ),
     );
-  }
-
-  Widget _buildDurationHint() {
-    final int roundSeconds = _getRoundSeconds();
-    final seconds = _isMinutesMode ? _selectedDuration * 60 : _selectedDuration * roundSeconds;
-    final hint = _isMinutesMode
-        ? "≈ ${(seconds / roundSeconds).toStringAsFixed(0)} rounds"
-        : "≈ ${(seconds / 60).toStringAsFixed(1)} minutes";
-    return Text(
-      hint,
-      style: Theme.of(context).textTheme.bodySmall?.copyWith(
-        color: Colors.grey[600],
-        fontStyle: FontStyle.italic,
-      ),
-    );
-  }
-
-  int _getRoundSeconds() {
-    if (_selectedTechnique == 'custom' && _customInhale != null && _customExhale != null) {
-      return _customInhale! + _customExhale!;
-    }
-
-    final parts = _selectedTechnique.split(':');
-    final inhale = parts.isNotEmpty ? int.tryParse(parts[0]) ?? 4 : 4;
-    final exhale = parts.length > 1 ? int.tryParse(parts[1]) ?? 4 : 4;
-    return inhale + exhale;
   }
 
   Widget _buildVisualizationSection() {
@@ -656,8 +589,6 @@ class _SheetkariPranayamaPageState extends State<SheetkariPranayamaPage> {
     );
   }
 
-
-
   Widget _buildPracticeGuide() {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
@@ -783,12 +714,8 @@ class _SheetkariPranayamaPageState extends State<SheetkariPranayamaPage> {
   }
 
   int _calculateRounds(int inhale, int exhale) {
-    if (_isMinutesMode) {
-      final roundSeconds = inhale + exhale;
-      final rounds = (_selectedDuration * 60) ~/ roundSeconds;
-      return rounds < 1 ? 1 : rounds;
-    } else {
-      return _selectedDuration;
-    }
+    final roundSeconds = inhale + exhale;
+    final rounds = (_selectedDuration * 60) ~/ roundSeconds;
+    return rounds < 1 ? 1 : rounds;
   }
 }

@@ -15,7 +15,7 @@ class KapalbhatiPranayamaPage extends StatefulWidget {
 
 class _KapalbhatiPranayamaPageState extends State<KapalbhatiPranayamaPage> {
   // Configuration state
-  int _selectedExhaleSpeed = 1; // 1 or 2 seconds
+  int _selectedExhaleSpeed = 2; // Default to beginner (2 seconds)
   String _selectedImage = 'assets/images/option3.png';
   int _selectedDuration = 5;
   String _selectedSound = 'None';
@@ -37,8 +37,8 @@ class _KapalbhatiPranayamaPageState extends State<KapalbhatiPranayamaPage> {
   ];
 
   static const _exhaleSpeedOptions = [
-    {'value': 1, 'label': 'Advanced', 'description': 'Faster pace'},
     {'value': 2, 'label': 'Beginner', 'description': 'Slower pace'},
+    {'value': 1, 'label': 'Advanced', 'description': 'Faster pace'},
   ];
 
   static const _durationOptions = [1, 3, 5, 10, 15, 20, 30, 45, 60];
@@ -172,7 +172,7 @@ class _KapalbhatiPranayamaPageState extends State<KapalbhatiPranayamaPage> {
 
   Widget _buildExhaleSpeedOption(Map<String, dynamic> option) {
     final bool isSelected = _selectedExhaleSpeed == option['value'];
-    final bool isBeginner = option['value'] == 1;
+    final bool isBeginner = option['value'] == 2;
 
     return GestureDetector(
       onTap: () => setState(() => _selectedExhaleSpeed = option['value']),

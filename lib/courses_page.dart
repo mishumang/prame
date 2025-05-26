@@ -64,12 +64,12 @@ class _CoursesPageState extends State<CoursesPage> with TickerProviderStateMixin
     "Sheetkari Pranayama": () => const SheetkariPranayamaLearnMorePage(),
   };
 
-  // Enhanced course data with teal color scheme
+  // Enhanced course data with teal color scheme - subtitles removed
   final Map<String, List<CourseInfo>> courseCategories = {
     "Breathing Foundations": [
       CourseInfo(
         title: "Abdominal Breathing",
-        subtitle: "Deep belly breathing for relaxation",
+        subtitle: "",
         image: "assets/images/abdominal_breathing.png",
         gradientColors: [lightTeal, mediumTeal],
         duration: "5-10 min",
@@ -78,7 +78,7 @@ class _CoursesPageState extends State<CoursesPage> with TickerProviderStateMixin
       ),
       CourseInfo(
         title: "Chest Breathing",
-        subtitle: "Upper chest expansion technique",
+        subtitle: "",
         image: "assets/images/chest_breathing.png",
         gradientColors: [mediumTeal, darkTeal],
         duration: "8-12 min",
@@ -87,7 +87,7 @@ class _CoursesPageState extends State<CoursesPage> with TickerProviderStateMixin
       ),
       CourseInfo(
         title: "Complete Breathing",
-        subtitle: "Full yogic breathing practice",
+        subtitle: "",
         image: "assets/images/complete_breathing.png",
         gradientColors: [lightTeal, darkTeal],
         duration: "10-15 min",
@@ -98,7 +98,7 @@ class _CoursesPageState extends State<CoursesPage> with TickerProviderStateMixin
     "Advanced Pranayama": [
       CourseInfo(
         title: "Bhramari Pranayama",
-        subtitle: "Humming bee breath technique",
+        subtitle: "",
         image: "assets/images/bhramari.png",
         gradientColors: [mediumTeal, lightTeal],
         duration: "8-15 min",
@@ -107,7 +107,7 @@ class _CoursesPageState extends State<CoursesPage> with TickerProviderStateMixin
       ),
       CourseInfo(
         title: "Nadi Shodhana Pranayama",
-        subtitle: "Alternate nostril breathing",
+        subtitle: "",
         image: "assets/images/nadishodana.png",
         gradientColors: [lightTeal, mediumTeal],
         duration: "10-20 min",
@@ -116,7 +116,7 @@ class _CoursesPageState extends State<CoursesPage> with TickerProviderStateMixin
       ),
       CourseInfo(
         title: "Ujjayi Pranayama",
-        subtitle: "Ocean breath for focus",
+        subtitle: "",
         image: "assets/images/ujjayi.png",
         gradientColors: [darkTeal, mediumTeal],
         duration: "5-15 min",
@@ -125,7 +125,7 @@ class _CoursesPageState extends State<CoursesPage> with TickerProviderStateMixin
       ),
       CourseInfo(
         title: "Surya Bhedana Pranayama",
-        subtitle: "Right nostril breathing",
+        subtitle: "",
         image: "assets/images/suryabedhana.png",
         gradientColors: [mediumTeal, darkTeal],
         duration: "8-12 min",
@@ -134,7 +134,7 @@ class _CoursesPageState extends State<CoursesPage> with TickerProviderStateMixin
       ),
       CourseInfo(
         title: "Chandra Bhedana Pranayama",
-        subtitle: "Left nostril breathing",
+        subtitle: "",
         image: "assets/images/chandrabedhana.png",
         gradientColors: [lightTeal, darkTeal],
         duration: "8-12 min",
@@ -143,7 +143,7 @@ class _CoursesPageState extends State<CoursesPage> with TickerProviderStateMixin
       ),
       CourseInfo(
         title: "Sheetali Pranayama",
-        subtitle: "Cooling breath technique",
+        subtitle: "",
         image: "assets/images/sheetali.png",
         gradientColors: [lightTeal, mediumTeal],
         duration: "5-10 min",
@@ -152,7 +152,7 @@ class _CoursesPageState extends State<CoursesPage> with TickerProviderStateMixin
       ),
       CourseInfo(
         title: "Sheetkari Pranayama",
-        subtitle: "Hissing cooling breath",
+        subtitle: "",
         image: "assets/images/sheetkari.png",
         gradientColors: [mediumTeal, lightTeal],
         duration: "5-10 min",
@@ -525,15 +525,6 @@ class _CoursesPageState extends State<CoursesPage> with TickerProviderStateMixin
                               color: Colors.white,
                               fontSize: 20,
                               fontWeight: FontWeight.w700,
-                            ),
-                          ),
-                          const SizedBox(height: 4),
-                          Text(
-                            course.subtitle,
-                            style: TextStyle(
-                              color: Colors.white.withOpacity(0.9),
-                              fontSize: 14,
-                              fontWeight: FontWeight.w400,
                             ),
                           ),
                           const SizedBox(height: 12),

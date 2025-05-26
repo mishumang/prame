@@ -16,7 +16,6 @@ class _ChandraBhedanaPranayamaPageState extends State<ChandraBhedanaPranayamaPag
   String _selectedImage = 'assets/images/option3.png';
   String _selectedSound = 'None';
   int _selectedDuration = 5;
-  bool _isMinutesMode = false;
   int? _customInhale = 4;
   int? _customExhale = 4;
   final ScrollController _soundController = ScrollController();
@@ -26,11 +25,12 @@ class _ChandraBhedanaPranayamaPageState extends State<ChandraBhedanaPranayamaPag
 
   // Technique options
   final Map<String, String> _techniques = {
-    '4:4': '4:4 Chandra Bhedana (Standard)',
+    '4:4': '4:4 Chandra Bhedana (Recommended)',
     'custom': 'Customize Technique',
   };
 
-
+  // Duration options (minutes only)
+  static const _durationOptions = [1, 3, 5, 10, 15, 20, 30, 45, 60];
 
   // Visualization options
   static const _imageOptions = [
@@ -60,7 +60,6 @@ class _ChandraBhedanaPranayamaPageState extends State<ChandraBhedanaPranayamaPag
   @override
   void initState() {
     super.initState();
-
     _precacheImages();
   }
 
@@ -77,7 +76,6 @@ class _ChandraBhedanaPranayamaPageState extends State<ChandraBhedanaPranayamaPag
 
   @override
   void dispose() {
-
     _soundController.dispose();
     super.dispose();
   }
@@ -136,7 +134,6 @@ class _ChandraBhedanaPranayamaPageState extends State<ChandraBhedanaPranayamaPag
           const SizedBox(height: 32),
           _buildAboutSection(),
           const SizedBox(height: 24),
-
           _buildPracticeGuide(),
           const SizedBox(height: 24),
         ],
@@ -168,8 +165,8 @@ class _ChandraBhedanaPranayamaPageState extends State<ChandraBhedanaPranayamaPag
 
   Widget _buildTechniqueSection() {
     const techniques = [
-      {'value': '4:4', 'label': 'Standard', 'inhale': 4, 'exhale': 4, 'recommended': true},
-      {'value': 'custom', 'label': 'Custom', 'inhale': 0, 'exhale': 0, 'recommended': false},
+      {'value': '4:4', 'label': 'Recommended', 'inhale': 4, 'exhale': 4},
+      {'value': 'custom', 'label': 'Custom', 'inhale': 0, 'exhale': 0},
     ];
 
     return Column(
@@ -196,7 +193,7 @@ class _ChandraBhedanaPranayamaPageState extends State<ChandraBhedanaPranayamaPag
 
   Widget _buildTechniqueOption(Map<String, dynamic> technique) {
     final bool isSelected = _selectedTechnique == technique['value'];
-    final bool isRecommended = technique['recommended'] == true;
+    final bool isRecommended = technique['value'] == '4:4';
 
     return GestureDetector(
       onTap: () => _handleTechniqueSelection(technique),
@@ -208,8 +205,6 @@ class _ChandraBhedanaPranayamaPageState extends State<ChandraBhedanaPranayamaPag
           border: Border.all(
             color: isSelected
                 ? _brandColor
-                : isRecommended
-                ? Colors.amber[600]!
                 : Colors.grey[300]!,
             width: isSelected ? 1.5 : 1,
           ),
@@ -232,16 +227,6 @@ class _ChandraBhedanaPranayamaPageState extends State<ChandraBhedanaPranayamaPag
                 '${technique['inhale']}:${technique['exhale']}',
                 style: Theme.of(context).textTheme.bodyMedium?.copyWith(
                   color: isSelected ? _brandColor : Colors.blueGrey[600],
-                ),
-              ),
-            ],
-            if (isRecommended) ...[
-              const SizedBox(height: 4),
-              Text(
-                'Recommended',
-                style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                  color: Colors.amber[700],
-                  fontWeight: FontWeight.w500,
                 ),
               ),
             ],
@@ -325,55 +310,18 @@ class _ChandraBhedanaPranayamaPageState extends State<ChandraBhedanaPranayamaPag
       children: [
         _buildSectionTitle('SESSION DURATION'),
         const SizedBox(height: 12),
-        Row(
-          mainAxisAlignment: MainAxisAlignment.center,
-          children: [
-            _buildToggleOption("Rounds", !_isMinutesMode),
-            SizedBox(width: 20),
-            _buildToggleOption("Minutes", _isMinutesMode),
-          ],
-        ),
-        const SizedBox(height: 16),
         SizedBox(
-          height: 56,
+          height: 50,
           child: ListView.builder(
             scrollDirection: Axis.horizontal,
-            itemCount: _isMinutesMode
-                ? [5,10,15,20,25,30,35,40,45,50,55,60].length
-                : [5,10,15,20,25,30,35,40,45,50,55,60,65,70,75].length,
+            itemCount: _durationOptions.length,
             itemBuilder: (context, index) {
-              final options = _isMinutesMode
-                  ? [5,10,15,20,25,30,35,40,45,50,55,60]
-                  : [5,10,15,20,25,30,35,40,45,50,55,60,65,70,75];
-              final duration = options[index];
+              final duration = _durationOptions[index];
               return _buildDurationOption(duration);
             },
           ),
         ),
-        SizedBox(height: 8),
-        _buildDurationHint(),
       ],
-    );
-  }
-
-  Widget _buildToggleOption(String text, bool isActive) {
-    return GestureDetector(
-      onTap: () => setState(() => _isMinutesMode = text == "Minutes"),
-      child: Container(
-        padding: EdgeInsets.symmetric(vertical: 8, horizontal: 16),
-        decoration: BoxDecoration(
-          color: isActive ? _brandColor : Colors.transparent,
-          borderRadius: BorderRadius.circular(20),
-          border: Border.all(color: isActive ? _brandColor : Colors.grey[400]!),
-        ),
-        child: Text(
-          text,
-          style: TextStyle(
-            color: isActive ? Colors.white : Colors.black87,
-            fontWeight: isActive ? FontWeight.w500 : FontWeight.normal,
-          ),
-        ),
-      ),
     );
   }
 
@@ -405,7 +353,7 @@ class _ChandraBhedanaPranayamaPageState extends State<ChandraBhedanaPranayamaPag
                 ),
               ),
               Text(
-                _isMinutesMode ? 'min' : 'rounds',
+                'min',
                 style: Theme.of(context).textTheme.labelSmall?.copyWith(
                   color: isSelected ? _brandColor : Colors.blueGrey[500],
                 ),
@@ -414,20 +362,6 @@ class _ChandraBhedanaPranayamaPageState extends State<ChandraBhedanaPranayamaPag
           ),
         ),
       ),
-    );
-  }
-
-  Widget _buildDurationHint() {
-    final totalSeconds = _isMinutesMode
-        ? _selectedDuration * 60
-        : _selectedDuration * _roundSeconds;
-    final hint = _isMinutesMode
-        ? "≈ ${(totalSeconds/_roundSeconds).toStringAsFixed(0)} rounds"
-        : "≈ ${(totalSeconds/60).toStringAsFixed(1)} minutes";
-    return Text(
-        hint,
-        textAlign: TextAlign.center,
-        style: TextStyle(color: Colors.grey[600])
     );
   }
 
@@ -585,9 +519,7 @@ class _ChandraBhedanaPranayamaPageState extends State<ChandraBhedanaPranayamaPag
   Widget _buildBeginButton() {
     final inhale = _selectedTechnique == '4:4' ? 4 : (_customInhale ?? 4);
     final exhale = _selectedTechnique == '4:4' ? 4 : (_customExhale ?? 4);
-    final rounds = _isMinutesMode
-        ? (_selectedDuration * 60) ~/ (inhale + exhale)
-        : _selectedDuration;
+    final rounds = (_selectedDuration * 60) ~/ (inhale + exhale);
 
     // Get selected audio path
     final selected = _soundOptions.firstWhere(
@@ -668,8 +600,6 @@ class _ChandraBhedanaPranayamaPageState extends State<ChandraBhedanaPranayamaPag
       ],
     );
   }
-
-
 
   Widget _buildPracticeGuide() {
     return Column(

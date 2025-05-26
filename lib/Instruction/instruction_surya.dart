@@ -13,7 +13,6 @@ class SuryaBhedanaPranayamaPage extends StatefulWidget {
 class _SuryaBhedanaPranayamaPageState extends State<SuryaBhedanaPranayamaPage> {
   // Configuration state
   String _selectedTechnique = '4:4';
-  bool _isMinutesMode = false;
   int _selectedDuration = 5;
   String _selectedImage = 'assets/images/option3.png';
   String _selectedSound = 'None';
@@ -21,7 +20,6 @@ class _SuryaBhedanaPranayamaPageState extends State<SuryaBhedanaPranayamaPage> {
 
   int? _customInhale;
   int? _customExhale;
-
 
   // Constants
   final Map<String, String> _techniques = {
@@ -57,8 +55,6 @@ class _SuryaBhedanaPranayamaPageState extends State<SuryaBhedanaPranayamaPage> {
   @override
   void initState() {
     super.initState();
-
-
     _precacheImages();
   }
 
@@ -75,18 +71,8 @@ class _SuryaBhedanaPranayamaPageState extends State<SuryaBhedanaPranayamaPage> {
 
   @override
   void dispose() {
-
     _soundController.dispose();
-
     super.dispose();
-  }
-
-  int get _roundSeconds {
-    if (_selectedTechnique == 'custom' && _customInhale != null && _customExhale != null) {
-      return _customInhale! + _customExhale!;
-    }
-    // default 4:4
-    return 4 + 4;
   }
 
   @override
@@ -109,7 +95,7 @@ class _SuryaBhedanaPranayamaPageState extends State<SuryaBhedanaPranayamaPage> {
       ),
       centerTitle: false,
       elevation: 0,
-      backgroundColor: const Color(0xff98bad5),
+      backgroundColor: const Color(0xfffcf5fd),
     );
   }
 
@@ -136,7 +122,6 @@ class _SuryaBhedanaPranayamaPageState extends State<SuryaBhedanaPranayamaPage> {
           const SizedBox(height: 32),
           _buildAboutSection(),
           const SizedBox(height: 24),
-
           _buildPracticeGuide(),
           const SizedBox(height: 24),
         ],
@@ -315,15 +300,6 @@ class _SuryaBhedanaPranayamaPageState extends State<SuryaBhedanaPranayamaPage> {
       children: [
         _buildSectionTitle('SESSION DURATION'),
         const SizedBox(height: 12),
-        Row(
-          mainAxisAlignment: MainAxisAlignment.center,
-          children: [
-            _buildToggleOption("Rounds", !_isMinutesMode),
-            SizedBox(width: 20),
-            _buildToggleOption("Minutes", _isMinutesMode),
-          ],
-        ),
-        const SizedBox(height: 16),
         SizedBox(
           height: 50,
           child: ListView.builder(
@@ -335,27 +311,7 @@ class _SuryaBhedanaPranayamaPageState extends State<SuryaBhedanaPranayamaPage> {
             },
           ),
         ),
-        SizedBox(height: 8),
-        _buildDurationHint(),
       ],
-    );
-  }
-
-  Widget _buildToggleOption(String text, bool isActive) {
-    return GestureDetector(
-      onTap: () => setState(() => _isMinutesMode = text == "Minutes"),
-      child: Container(
-        padding: EdgeInsets.symmetric(vertical: 8, horizontal: 16),
-        decoration: BoxDecoration(
-          color: isActive ? const Color(0xff98bad5) : Colors.transparent,
-          borderRadius: BorderRadius.circular(20),
-          border: Border.all(color: isActive ? const Color(0xff98bad5) : Colors.grey[400]!),
-        ),
-        child: Text(
-            text,
-            style: TextStyle(color: isActive ? Colors.white : Colors.black87)
-        ),
-      ),
     );
   }
 
@@ -387,7 +343,7 @@ class _SuryaBhedanaPranayamaPageState extends State<SuryaBhedanaPranayamaPage> {
                 ),
               ),
               Text(
-                _isMinutesMode ? 'min' : 'rnd',
+                'min',
                 style: Theme.of(context).textTheme.labelSmall?.copyWith(
                   color: isSelected ? Colors.blue[600] : Colors.blueGrey[500],
                 ),
@@ -396,20 +352,6 @@ class _SuryaBhedanaPranayamaPageState extends State<SuryaBhedanaPranayamaPage> {
           ),
         ),
       ),
-    );
-  }
-
-  Widget _buildDurationHint() {
-    final totalSeconds = _isMinutesMode
-        ? _selectedDuration * 60
-        : _selectedDuration * _roundSeconds;
-    final hint = _isMinutesMode
-        ? "≈ ${(totalSeconds / _roundSeconds).toStringAsFixed(0)} rounds"
-        : "≈ ${(totalSeconds / 60).toStringAsFixed(1)} minutes";
-    return Text(
-        hint,
-        textAlign: TextAlign.center,
-        style: TextStyle(color: Colors.grey[600])
     );
   }
 
@@ -595,9 +537,7 @@ class _SuryaBhedanaPranayamaPageState extends State<SuryaBhedanaPranayamaPage> {
   Widget _buildBeginButton() {
     final inhale = _selectedTechnique == '4:4' ? 4 : (_customInhale ?? 4);
     final exhale = _selectedTechnique == '4:4' ? 4 : (_customExhale ?? 4);
-    final rounds = _isMinutesMode
-        ? (_selectedDuration * 60) ~/ (inhale + exhale)
-        : _selectedDuration;
+    final rounds = (_selectedDuration * 60) ~/ (inhale + exhale);
 
     final selected = _soundOptions.firstWhere(
           (s) => s['name'] == _selectedSound,
@@ -669,13 +609,10 @@ class _SuryaBhedanaPranayamaPageState extends State<SuryaBhedanaPranayamaPage> {
               height: 1.5,
               color: Colors.blueGrey[700]
           ),
-
         ),
       ],
     );
   }
-
-
 
   Widget _buildPracticeGuide() {
     return Column(

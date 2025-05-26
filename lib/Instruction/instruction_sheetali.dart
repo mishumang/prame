@@ -16,12 +16,9 @@ class _SheetaliPranayamaPageState extends State<SheetaliPranayamaPage> {
   String _selectedImage = 'assets/images/option3.png';
   int _selectedDuration = 5;
   String _selectedSound = 'None';
-  bool _isMinutesMode = false;
   int? _customInhale;
   int? _customExhale;
   final ScrollController _soundController = ScrollController();
-
-
 
   // Constants
   static const _techniques = [
@@ -59,7 +56,6 @@ class _SheetaliPranayamaPageState extends State<SheetaliPranayamaPage> {
   @override
   void initState() {
     super.initState();
-
     _precacheImages();
   }
 
@@ -108,13 +104,13 @@ class _SheetaliPranayamaPageState extends State<SheetaliPranayamaPage> {
         "Sheetali Pranayama",
         style: Theme.of(context).textTheme.titleLarge?.copyWith(
           fontWeight: FontWeight.w600,
-          color: Colors.white,
+          color: Colors.blueGrey[900],
         ),
       ),
-      centerTitle: true,
+      centerTitle: false,
       elevation: 0,
-      backgroundColor: Colors.blue[600],
-      toolbarHeight: 60,
+      backgroundColor: Theme.of(context).scaffoldBackgroundColor,
+      iconTheme: IconThemeData(color: Colors.blueGrey[800]),
     );
   }
 
@@ -139,7 +135,6 @@ class _SheetaliPranayamaPageState extends State<SheetaliPranayamaPage> {
           const SizedBox(height: 32),
           _buildAboutSection(),
           const SizedBox(height: 24),
-
           _buildPracticeGuide(),
           const SizedBox(height: 24),
         ],
@@ -311,18 +306,10 @@ class _SheetaliPranayamaPageState extends State<SheetaliPranayamaPage> {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        Row(
-          children: [
-            _buildSectionTitle('SESSION DURATION'),
-            const Spacer(),
-            _buildToggleOption("Rounds", !_isMinutesMode),
-            const SizedBox(width: 8),
-            _buildToggleOption("Minutes", _isMinutesMode),
-          ],
-        ),
+        _buildSectionTitle('SESSION DURATION'),
         const SizedBox(height: 12),
         SizedBox(
-          height: 60,
+          height: 50,
           child: ListView.builder(
             scrollDirection: Axis.horizontal,
             itemCount: _durationOptions.length,
@@ -332,34 +319,7 @@ class _SheetaliPranayamaPageState extends State<SheetaliPranayamaPage> {
             },
           ),
         ),
-        const SizedBox(height: 8),
-        _buildDurationHint(),
       ],
-    );
-  }
-
-  Widget _buildToggleOption(String text, bool isActive) {
-    return GestureDetector(
-      onTap: () => setState(() => _isMinutesMode = text == "Minutes"),
-      child: Container(
-        padding: EdgeInsets.symmetric(vertical: 6, horizontal: 12),
-        decoration: BoxDecoration(
-          color: isActive ? Colors.blue[600] : Colors.transparent,
-          borderRadius: BorderRadius.circular(16),
-          border: Border.all(
-            color: isActive ? Colors.blue[600]! : Colors.grey.shade400,
-            width: 1.0,
-          ),
-        ),
-        child: Text(
-          text,
-          style: TextStyle(
-            color: isActive ? Colors.white : Colors.black87,
-            fontSize: 12,
-            fontWeight: FontWeight.w500,
-          ),
-        ),
-      ),
     );
   }
 
@@ -391,7 +351,7 @@ class _SheetaliPranayamaPageState extends State<SheetaliPranayamaPage> {
                 ),
               ),
               Text(
-                _isMinutesMode ? 'min' : 'rounds',
+                'min',
                 style: Theme.of(context).textTheme.labelSmall?.copyWith(
                   color: isSelected ? Colors.blue[600] : Colors.blueGrey[500],
                 ),
@@ -400,21 +360,6 @@ class _SheetaliPranayamaPageState extends State<SheetaliPranayamaPage> {
           ),
         ),
       ),
-    );
-  }
-
-  Widget _buildDurationHint() {
-    final (inhale, exhale) = _parseBreathingPattern();
-    final totalSeconds = _isMinutesMode
-        ? _selectedDuration * 60
-        : _selectedDuration * (inhale + exhale);
-    final hint = _isMinutesMode
-        ? "≈ ${(totalSeconds / (inhale + exhale)).toStringAsFixed(0)} rounds"
-        : "≈ ${(totalSeconds / 60).toStringAsFixed(1)} minutes";
-    return Text(
-      hint,
-      textAlign: TextAlign.center,
-      style: TextStyle(color: Colors.grey[600]),
     );
   }
 
@@ -570,9 +515,7 @@ class _SheetaliPranayamaPageState extends State<SheetaliPranayamaPage> {
 
   Widget _buildBeginButton() {
     final (inhale, exhale) = _parseBreathingPattern();
-    final rounds = _isMinutesMode
-        ? (_selectedDuration * 60) ~/ (inhale + exhale)
-        : _selectedDuration;
+    final rounds = _calculateRounds(inhale, exhale);
 
     final selectedSoundOption = _soundOptions.firstWhere(
           (sound) => sound['name'] == _selectedSound,
@@ -643,7 +586,6 @@ class _SheetaliPranayamaPageState extends State<SheetaliPranayamaPage> {
       ],
     );
   }
-
 
   Widget _buildPracticeGuide() {
     return Column(
@@ -741,5 +683,10 @@ class _SheetaliPranayamaPageState extends State<SheetaliPranayamaPage> {
       orElse: () => {'inhale': 4, 'exhale': 4},
     );
     return (technique['inhale'] as int, technique['exhale'] as int);
+  }
+
+  int _calculateRounds(int inhale, int exhale) {
+    final rounds = (_selectedDuration * 60) ~/ (inhale + exhale);
+    return rounds < 1 ? 1 : rounds;
   }
 }
