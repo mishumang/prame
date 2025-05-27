@@ -13,7 +13,7 @@ class BhramariBreathingPage extends StatefulWidget {
 
 class _BhramariBreathingPageState extends State<BhramariBreathingPage> {
   // Configuration state
-  String _selectedTechnique = '5:8';
+  String _selectedTechnique = '4:6';
   String _selectedImage = 'assets/images/option3.png';
   int _selectedDuration = 5;
   String _selectedSound = 'None';
@@ -31,8 +31,8 @@ class _BhramariBreathingPageState extends State<BhramariBreathingPage> {
 
 
   static const _techniques = [
-    {'value': '5:8', 'label': 'Recommended', 'inhale': 5, 'exhale': 8},
-    {'value': '4:6', 'label': 'Standard', 'inhale': 4, 'exhale': 6},
+    {'value': '4:6', 'label': 'Recommended', 'inhale': 4, 'exhale': 6},
+    {'value': '4:8', 'label': 'Extended', 'inhale': 4, 'exhale': 8},
     {'value': '6:6', 'label': 'Balanced', 'inhale': 6, 'exhale': 6},
     {'value': 'custom', 'label': 'Custom', 'inhale': 0, 'exhale': 0},
   ];
@@ -41,8 +41,8 @@ class _BhramariBreathingPageState extends State<BhramariBreathingPage> {
   static const _instructionSteps = [
     "Find a quiet space and sit comfortably",
     "Close your eyes and relax your facial muscles",
-    "Inhale deeply through your nose (5 seconds)",
-    "Exhale slowly while making a humming sound (8 seconds)",
+    "Inhale deeply through your nose (4 seconds)",
+    "Exhale slowly while making a humming sound (6 seconds)",
     "Keep your lips gently closed during exhalation",
     "Focus on the vibration of the humming sound",
   ];
@@ -170,7 +170,7 @@ class _BhramariBreathingPageState extends State<BhramariBreathingPage> {
 
   Widget _buildTechniqueOption(Map<String, dynamic> technique) {
     final bool isSelected = _selectedTechnique == technique['value'];
-    final bool isRecommended = technique['value'] == '5:8';
+    final bool isRecommended = technique['value'] == '4:6';
 
     return GestureDetector(
       onTap: () => _handleTechniqueSelection(technique),
@@ -494,7 +494,7 @@ class _BhramariBreathingPageState extends State<BhramariBreathingPage> {
                     exhaleDuration: exhale,
                     rounds: rounds,
                     imagePath: _selectedImage,
-                     // Add this parameter
+                    // Add this parameter
                   ),
               transitionsBuilder:
                   (context, animation, secondaryAnimation, child) {
@@ -618,8 +618,8 @@ class _BhramariBreathingPageState extends State<BhramariBreathingPage> {
     }
 
     final parts = _selectedTechnique.split(':');
-    final inhale = parts.isNotEmpty ? int.tryParse(parts[0]) ?? 5 : 5;
-    final exhale = parts.length > 1 ? int.tryParse(parts[1]) ?? 8 : 8;
+    final inhale = parts.isNotEmpty ? int.tryParse(parts[0]) ?? 4 : 4;
+    final exhale = parts.length > 1 ? int.tryParse(parts[1]) ?? 6 : 6;
     return (inhale, exhale);
   }
 

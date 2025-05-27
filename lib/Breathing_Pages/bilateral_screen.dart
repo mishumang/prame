@@ -35,6 +35,7 @@ class _BilateralScreenState extends State<BilateralScreen>
 
   bool isRunning = false;
   bool isAudioPlaying = false;
+  bool shouldPlayAudio = false; // Track if audio should be playing
   int completedRounds = 0;
   int totalRounds = 0;
   bool lastPhaseWasInhale = false;
@@ -97,6 +98,8 @@ class _BilateralScreenState extends State<BilateralScreen>
             isRunning = false;
             breathingText = "Complete";
           });
+          // Pause audio when exercise completes
+          await _pauseAmbientAudio();
           return;
         }
 
@@ -176,6 +179,38 @@ class _BilateralScreenState extends State<BilateralScreen>
     }
   }
 
+  // Helper method to pause ambient audio
+  Future<void> _pauseAmbientAudio() async {
+    if (isAudioPlaying) {
+      await _audioPlayer.pause();
+      setState(() {
+        isAudioPlaying = false;
+      });
+    }
+  }
+
+  // Helper method to resume ambient audio if it should be playing
+  Future<void> _resumeAmbientAudio() async {
+    if (shouldPlayAudio && !isAudioPlaying && widget.audioPath.isNotEmpty) {
+      try {
+        await _audioPlayer.resume();
+        setState(() {
+          isAudioPlaying = true;
+        });
+      } catch (e) {
+        // Try to play if resume fails
+        try {
+          await _audioPlayer.play(AssetSource(widget.audioPath));
+          setState(() {
+            isAudioPlaying = true;
+          });
+        } catch (e) {
+          print('Error playing audio: $e');
+        }
+      }
+    }
+  }
+
   // Update ambient sound volume
   Future<void> _updateAmbientVolume(double value) async {
     setState(() {
@@ -217,9 +252,8 @@ class _BilateralScreenState extends State<BilateralScreen>
           isCountingDown = false;
           breathingText = "Inhale";
           _startBreathingCycle();
-          if (widget.audioPath.isNotEmpty) {
-            toggleAudio(); // Auto start ambient audio
-          }
+          // Resume audio if it should be playing
+          _resumeAmbientAudio();
         }
       });
     });
@@ -242,6 +276,8 @@ class _BilateralScreenState extends State<BilateralScreen>
       setState(() {
         isRunning = false;
       });
+      // Pause ambient audio when breathing is paused
+      _pauseAmbientAudio();
     } else if (isCountingDown) {
       // Cancel countdown if it's in progress
       _countdownTimer?.cancel();
@@ -249,6 +285,8 @@ class _BilateralScreenState extends State<BilateralScreen>
         isCountingDown = false;
         breathingText = "Inhale";
       });
+      // Pause audio when canceling countdown
+      _pauseAmbientAudio();
     } else {
       // Reset if completed
       if (breathingText == "Complete") {
@@ -271,23 +309,30 @@ class _BilateralScreenState extends State<BilateralScreen>
       return;
     }
 
-    if (isAudioPlaying) {
-      await _audioPlayer.pause();
-    } else {
-      try {
-        await _audioPlayer.resume();
-      } catch (e) {
-        // Try to play if resume fails
+    setState(() {
+      shouldPlayAudio = !shouldPlayAudio;
+    });
+
+    if (shouldPlayAudio) {
+      // Only start audio if breathing is actually running (not paused)
+      if (isRunning || isCountingDown) {
         try {
-          await _audioPlayer.play(AssetSource(widget.audioPath));
+          if (isAudioPlaying) {
+            await _audioPlayer.resume();
+          } else {
+            await _audioPlayer.play(AssetSource(widget.audioPath));
+            setState(() {
+              isAudioPlaying = true;
+            });
+          }
         } catch (e) {
           print('Error playing audio: $e');
         }
       }
+    } else {
+      // Always pause audio when toggled off
+      await _pauseAmbientAudio();
     }
-    setState(() {
-      isAudioPlaying = !isAudioPlaying;
-    });
   }
 
   @override
@@ -328,7 +373,7 @@ class _BilateralScreenState extends State<BilateralScreen>
           if (widget.audioPath.isNotEmpty)
             IconButton(
               icon: Icon(
-                isAudioPlaying ? Icons.music_note : Icons.music_off,
+                shouldPlayAudio ? Icons.music_note : Icons.music_off,
                 color: Colors.white,
                 size: 28.0,
               ),

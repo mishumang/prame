@@ -24,8 +24,8 @@ class _NadiShodhanaPageState extends State<NadiShodhanaPage> {
   // Constants
   static const _techniques = [
     {'value': '4:6', 'label': 'Recommended', 'inhale': 4, 'exhale': 6},
-    {'value': '2:3', 'label': 'Balanced', 'inhale': 2, 'exhale': 3},
     {'value': '4:8', 'label': 'Extended', 'inhale': 4, 'exhale': 8},
+    {'value': '4:4', 'label': 'Balanced', 'inhale': 4, 'exhale': 4},
     {'value': 'custom', 'label': 'Custom', 'inhale': 0, 'exhale': 0},
   ];
 
@@ -570,7 +570,7 @@ class _NadiShodhanaPageState extends State<NadiShodhanaPage> {
         _buildSectionTitle('ABOUT SURYA BHEDANA'),
         const SizedBox(height: 12),
         Text(
-          "Nadi Shodhana, or alternate nostril breathing, balances the body’s energy channels. It promotes calmness, mental clarity, and inner harmony by equalizing breath flow.",
+          "Nadi Shodhana, or alternate nostril breathing, balances the body's energy channels. It promotes calmness, mental clarity, and inner harmony by equalizing breath flow.",
           style: TextStyle(
               fontSize: 15,
               height: 1.5,
