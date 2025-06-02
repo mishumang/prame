@@ -33,7 +33,7 @@ class _BhramariBreathingPageState extends State<BhramariBreathingPage> {
   static const _techniques = [
     {'value': '4:6', 'label': 'Recommended', 'inhale': 4, 'exhale': 6},
     {'value': '4:8', 'label': 'Extended', 'inhale': 4, 'exhale': 8},
-    {'value': '6:6', 'label': 'Balanced', 'inhale': 6, 'exhale': 6},
+    {'value': '4:4', 'label': 'Balanced', 'inhale': 4, 'exhale': 4},
     {'value': 'custom', 'label': 'Custom', 'inhale': 0, 'exhale': 0},
   ];
 

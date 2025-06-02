@@ -12,22 +12,24 @@ class ChandraBhedanaPranayamaPage extends StatefulWidget {
 
 class _ChandraBhedanaPranayamaPageState extends State<ChandraBhedanaPranayamaPage> {
   // Configuration state
-  String _selectedTechnique = '4:4';
+  String _selectedTechnique = '4:6';
   String _selectedImage = 'assets/images/option3.png';
   String _selectedSound = 'None';
   int _selectedDuration = 5;
-  int? _customInhale = 4;
-  int? _customExhale = 4;
+  int _customInhale = 4;
+  int _customExhale = 6;
   final ScrollController _soundController = ScrollController();
 
   // Constants
   static const Color _brandColor = Color(0xff1e88e5);
 
-  // Technique options
-  final Map<String, String> _techniques = {
-    '4:4': '4:4 Chandra Bhedana (Recommended)',
-    'custom': 'Customize Technique',
-  };
+  // Technique options - now matches the structure of Nadi Shodhana
+  static const _techniques = [
+    {'value': '4:6', 'label': 'Recommended', 'inhale': 4, 'exhale': 6},
+    {'value': '4:8', 'label': 'Extended', 'inhale': 4, 'exhale': 8},
+    {'value': '4:4', 'label': 'Balanced', 'inhale': 4, 'exhale': 4},
+    {'value': 'custom', 'label': 'Custom', 'inhale': 0, 'exhale': 0},
+  ];
 
   // Duration options (minutes only)
   static const _durationOptions = [1, 3, 5, 10, 15, 20, 30, 45, 60];
@@ -81,11 +83,14 @@ class _ChandraBhedanaPranayamaPageState extends State<ChandraBhedanaPranayamaPag
   }
 
   int get _roundSeconds {
-    if (_selectedTechnique == 'custom' && _customInhale != null && _customExhale != null) {
-      return _customInhale! + _customExhale!;
+    if (_selectedTechnique == 'custom') {
+      return _customInhale + _customExhale;
     }
-    // default 4:4
-    return 4 + 4;
+    // Parse the selected technique
+    final parts = _selectedTechnique.split(':');
+    final inhale = parts.isNotEmpty ? int.tryParse(parts[0]) ?? 4 : 4;
+    final exhale = parts.length > 1 ? int.tryParse(parts[1]) ?? 6 : 6;
+    return inhale + exhale;
   }
 
   @override
@@ -164,11 +169,6 @@ class _ChandraBhedanaPranayamaPageState extends State<ChandraBhedanaPranayamaPag
   }
 
   Widget _buildTechniqueSection() {
-    const techniques = [
-      {'value': '4:4', 'label': 'Recommended', 'inhale': 4, 'exhale': 4},
-      {'value': 'custom', 'label': 'Custom', 'inhale': 0, 'exhale': 0},
-    ];
-
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
@@ -181,7 +181,7 @@ class _ChandraBhedanaPranayamaPageState extends State<ChandraBhedanaPranayamaPag
           mainAxisSpacing: 12,
           crossAxisSpacing: 12,
           childAspectRatio: 2.2,
-          children: techniques.map(_buildTechniqueOption).toList(),
+          children: _techniques.map(_buildTechniqueOption).toList(),
         ),
         if (_selectedTechnique == 'custom') ...[
           const SizedBox(height: 16),
@@ -193,7 +193,7 @@ class _ChandraBhedanaPranayamaPageState extends State<ChandraBhedanaPranayamaPag
 
   Widget _buildTechniqueOption(Map<String, dynamic> technique) {
     final bool isSelected = _selectedTechnique == technique['value'];
-    final bool isRecommended = technique['value'] == '4:4';
+    final bool isRecommended = technique['value'] == '4:6';
 
     return GestureDetector(
       onTap: () => _handleTechniqueSelection(technique),
@@ -205,6 +205,8 @@ class _ChandraBhedanaPranayamaPageState extends State<ChandraBhedanaPranayamaPag
           border: Border.all(
             color: isSelected
                 ? _brandColor
+                : isRecommended
+                ? Colors.amber[600]!
                 : Colors.grey[300]!,
             width: isSelected ? 1.5 : 1,
           ),
@@ -240,15 +242,15 @@ class _ChandraBhedanaPranayamaPageState extends State<ChandraBhedanaPranayamaPag
     if (technique['value'] == 'custom') {
       final result = await showCustomizationDialog(
         context,
-        initialInhale: _customInhale ?? 4,
-        initialExhale: _customExhale ?? 4,
+        initialInhale: _customInhale,
+        initialExhale: _customExhale,
         initialHold: 0,
       );
       if (result != null && mounted) {
         setState(() {
           _selectedTechnique = 'custom';
-          _customInhale = result['inhale'];
-          _customExhale = result['exhale'];
+          _customInhale = result['inhale'] ?? 4;
+          _customExhale = result['exhale'] ?? 6;
         });
       }
     } else if (mounted) {
@@ -517,9 +519,8 @@ class _ChandraBhedanaPranayamaPageState extends State<ChandraBhedanaPranayamaPag
   }
 
   Widget _buildBeginButton() {
-    final inhale = _selectedTechnique == '4:4' ? 4 : (_customInhale ?? 4);
-    final exhale = _selectedTechnique == '4:4' ? 4 : (_customExhale ?? 4);
-    final rounds = (_selectedDuration * 60) ~/ (inhale + exhale);
+    final (inhale, exhale) = _parseBreathingPattern();
+    final rounds = _calculateRounds(inhale, exhale);
 
     // Get selected audio path
     final selected = _soundOptions.firstWhere(
@@ -544,7 +545,7 @@ class _ChandraBhedanaPranayamaPageState extends State<ChandraBhedanaPranayamaPag
                     imagePath: _selectedImage,
                     audioPath: audioPath,
                     inhaleAudioPath: 'music/inhale-bell1_.mp3',
-                    exhaleAudioPath: 'music/exhale_bell.mp3',
+                    exhaleAudioPath: 'music/kapalnew.mp3',
                   ),
               transitionsBuilder:
                   (context, animation, secondaryAnimation, child) {
@@ -684,5 +685,21 @@ class _ChandraBhedanaPranayamaPageState extends State<ChandraBhedanaPranayamaPag
         letterSpacing: 0.8,
       ),
     );
+  }
+
+  (int inhale, int exhale) _parseBreathingPattern() {
+    if (_selectedTechnique == 'custom') {
+      return (_customInhale, _customExhale);
+    }
+
+    final parts = _selectedTechnique.split(':');
+    final inhale = parts.isNotEmpty ? int.tryParse(parts[0]) ?? 4 : 4;
+    final exhale = parts.length > 1 ? int.tryParse(parts[1]) ?? 6 : 6;
+    return (inhale, exhale);
+  }
+
+  int _calculateRounds(int inhale, int exhale) {
+    final rounds = (_selectedDuration * 60) ~/ (inhale + exhale);
+    return rounds < 1 ? 1 : rounds;
   }
 }

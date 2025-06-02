@@ -9,7 +9,7 @@ class UjjayiBreathingScreen extends StatefulWidget {
   final String imagePath;
   final String inhaleAudioPath;
   final String exhaleAudioPath;
-  final int countdownDuration; // Added countdown duration parameter
+  final int countdownDuration;
 
   const UjjayiBreathingScreen({
     Key? key,
@@ -19,7 +19,7 @@ class UjjayiBreathingScreen extends StatefulWidget {
     this.imagePath = 'assets/images/option3.png',
     this.inhaleAudioPath = 'music/inhale_bell1.mp3',
     this.exhaleAudioPath = 'music/exhale_bell.mp3',
-    this.countdownDuration = 3, // Default countdown of 3 seconds
+    this.countdownDuration = 3,
   }) : super(key: key);
 
   @override
@@ -27,12 +27,13 @@ class UjjayiBreathingScreen extends StatefulWidget {
 }
 
 class _UjjayiBreathingScreenState extends State<UjjayiBreathingScreen>
-    with SingleTickerProviderStateMixin {
+    with SingleTickerProviderStateMixin, WidgetsBindingObserver {
   late AnimationController _controller;
   late AudioPlayer _bellPlayer;
   late AudioCache _audioCache;
 
   bool isRunning = false;
+  bool isPaused = false;
   int completedRounds = 0;
   int totalRounds = 0;
   bool lastPhaseWasInhale = false;
@@ -46,6 +47,7 @@ class _UjjayiBreathingScreenState extends State<UjjayiBreathingScreen>
   @override
   void initState() {
     super.initState();
+    WidgetsBinding.instance.addObserver(this);
     totalRounds = widget.rounds;
     countdownValue = widget.countdownDuration;
 
@@ -79,9 +81,11 @@ class _UjjayiBreathingScreenState extends State<UjjayiBreathingScreen>
         completedRounds++;
 
         if (completedRounds >= totalRounds && totalRounds > 0) {
+          await _stopAllAudio(); // Stop all audio when exercise completes
           _controller.stop();
           setState(() {
             isRunning = false;
+            isPaused = false;
             breathingText = "Complete";
           });
           return;
@@ -94,7 +98,7 @@ class _UjjayiBreathingScreenState extends State<UjjayiBreathingScreen>
 
         await Future.delayed(const Duration(milliseconds: 5));
 
-        if (isRunning) {
+        if (isRunning && !isPaused) {
           _startBreathingCycle();
         }
       }
@@ -119,6 +123,17 @@ class _UjjayiBreathingScreenState extends State<UjjayiBreathingScreen>
     _bellPlayer.setAudioContext(audioContext);
     _setupBellPlayer();
     _preloadAudioFiles();
+  }
+
+  // Handle app lifecycle changes
+  @override
+  void didChangeAppLifecycleState(AppLifecycleState state) {
+    super.didChangeAppLifecycleState(state);
+    if (state == AppLifecycleState.paused ||
+        state == AppLifecycleState.detached ||
+        state == AppLifecycleState.inactive) {
+      _stopAllAudio();
+    }
   }
 
   Future<void> _preloadAudioFiles() async {
@@ -148,7 +163,12 @@ class _UjjayiBreathingScreenState extends State<UjjayiBreathingScreen>
 
   Future<void> _playBellSound(bool isInhale) async {
     try {
+      // Stop any current playing to avoid overlap
       await _bellPlayer.stop();
+
+      // Only play bell sound if breathing is actually running and not paused
+      if (!isRunning || isPaused || isCountingDown) return;
+
       print('Playing ${isInhale ? "inhale" : "exhale"} bell sound');
       print('Audio path: ${isInhale ? widget.inhaleAudioPath : widget.exhaleAudioPath}');
 
@@ -167,6 +187,16 @@ class _UjjayiBreathingScreenState extends State<UjjayiBreathingScreen>
           ),
         );
       }
+    }
+  }
+
+  // Helper method to stop all audio
+  Future<void> _stopAllAudio() async {
+    try {
+      await _bellPlayer.stop();
+      print('All audio stopped');
+    } catch (e) {
+      print('Error stopping audio: $e');
     }
   }
 
@@ -205,22 +235,29 @@ class _UjjayiBreathingScreenState extends State<UjjayiBreathingScreen>
     }
   }
 
-  void toggleBreathing() {
+  void toggleBreathing() async {
     if (isRunning) {
       // Cancel countdown if it's running
       if (isCountingDown && _countdownTimer != null) {
         _countdownTimer!.cancel();
         _countdownTimer = null;
+        await _bellPlayer.stop(); // Stop any playing bell sounds
         setState(() {
           isCountingDown = false;
+          isRunning = false;
+          isPaused = false;
           breathingText = "Press Start";
         });
       } else {
+        // Pause the animation instead of stopping it
         _controller.stop();
+        await _bellPlayer.stop(); // Stop bell sound immediately when pausing
+        setState(() {
+          isRunning = false;
+          isPaused = true;
+          breathingText = "Paused";
+        });
       }
-      setState(() {
-        isRunning = false;
-      });
     } else {
       setState(() {
         isRunning = true;
@@ -228,22 +265,40 @@ class _UjjayiBreathingScreenState extends State<UjjayiBreathingScreen>
         if (breathingText == "Complete") {
           completedRounds = 0;
           lastPhaseWasInhale = false;
+          isPaused = false;
+          _controller.reset();
         }
       });
 
-      // Start countdown before breathing
-      _startCountdown();
+      // If we're resuming from a pause, continue the animation
+      if (isPaused) {
+        setState(() {
+          isPaused = false;
+          // Restore the appropriate breathing text based on current phase
+          double inhaleThreshold = widget.inhaleDuration / (widget.inhaleDuration + widget.exhaleDuration);
+          breathingText = _controller.value <= inhaleThreshold ? "Inhale" : "Exhale";
+        });
+        _controller.forward(); // Continue from where we left off
+      } else {
+        // Start fresh with countdown
+        _startCountdown();
+      }
     }
   }
 
   @override
   void dispose() {
-    _controller.dispose();
-    _bellPlayer.stop();
-    _bellPlayer.dispose();
+    WidgetsBinding.instance.removeObserver(this);
     if (_countdownTimer != null) {
       _countdownTimer!.cancel();
     }
+    _controller.dispose();
+
+    // Properly stop and dispose audio player
+    _stopAllAudio().then((_) {
+      _bellPlayer.dispose();
+    });
+
     super.dispose();
   }
 
@@ -262,6 +317,14 @@ class _UjjayiBreathingScreenState extends State<UjjayiBreathingScreen>
         centerTitle: true,
         backgroundColor: Colors.blueGrey,
         elevation: 10,
+        leading: IconButton(
+          icon: const Icon(Icons.arrow_back, color: Colors.white),
+          onPressed: () async {
+            // Stop all audio before navigating back
+            await _stopAllAudio();
+            Navigator.of(context).pop();
+          },
+        ),
         actions: [
           IconButton(
             icon: const Icon(Icons.volume_up, color: Colors.white),
@@ -366,7 +429,11 @@ class _UjjayiBreathingScreenState extends State<UjjayiBreathingScreen>
             style: TextStyle(
               fontSize: isCountingDown ? 50 : 30,  // Larger text for countdown
               fontWeight: FontWeight.bold,
-              color: isCountingDown ? Colors.orange : Colors.white,  // Different color for countdown
+              color: isCountingDown
+                  ? Colors.orange
+                  : isPaused
+                  ? Colors.yellow
+                  : Colors.white,  // Different colors for different states
             ),
           ),
         );
@@ -411,6 +478,8 @@ class _UjjayiBreathingScreenState extends State<UjjayiBreathingScreen>
               BoxShadow(
                 color: isCountingDown
                     ? Colors.orange.withOpacity(0.75)  // Orange glow during countdown
+                    : isPaused
+                    ? Colors.yellow.withOpacity(0.75)  // Yellow glow when paused
                     : Colors.blue.shade600.withOpacity(0.75),
                 blurRadius: 10,
                 spreadRadius: 10,
@@ -428,6 +497,8 @@ class _UjjayiBreathingScreenState extends State<UjjayiBreathingScreen>
         Text(
           isCountingDown
               ? "Get Ready..."
+              : isPaused
+              ? "Paused"
               : "Round ${completedRounds + (isRunning && !isCountingDown ? 1 : 0)} of $totalRounds",
           style: const TextStyle(
             color: Colors.white70,
@@ -446,7 +517,11 @@ class _UjjayiBreathingScreenState extends State<UjjayiBreathingScreen>
                   : totalRounds > 0 ? (completedRounds / totalRounds) : 0,
               backgroundColor: Colors.grey.withOpacity(0.3),
               valueColor: AlwaysStoppedAnimation<Color>(
-                  isCountingDown ? Colors.orange : Colors.blue
+                  isCountingDown
+                      ? Colors.orange
+                      : isPaused
+                      ? Colors.yellow
+                      : Colors.blue
               ),
               minHeight: 10,
             ),
@@ -467,7 +542,13 @@ class _UjjayiBreathingScreenState extends State<UjjayiBreathingScreen>
       ),
       icon: Icon(isRunning ? Icons.pause : Icons.play_arrow),
       label: Text(
-        isRunning ? "Pause" : (completedRounds >= totalRounds && totalRounds > 0) ? "Restart" : "Start",
+        isRunning
+            ? "Pause"
+            : isPaused
+            ? "Resume"
+            : (completedRounds >= totalRounds && totalRounds > 0)
+            ? "Restart"
+            : "Start",
         style: const TextStyle(fontSize: 20),
       ),
     );

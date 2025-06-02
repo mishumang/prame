@@ -19,7 +19,7 @@ class BilateralScreen extends StatefulWidget {
     this.imagePath = 'assets/images/option3.png',
     this.audioPath = '',
     this.inhaleAudioPath = 'assets/music/inhale-bell1.mp3',
-    this.exhaleAudioPath = 'assets/music/exhale_bell.mp3',
+    this.exhaleAudioPath = 'assets/music/kapalnew.mp3',
   }) : super(key: key);
 
   @override
@@ -27,7 +27,7 @@ class BilateralScreen extends StatefulWidget {
 }
 
 class _BilateralScreenState extends State<BilateralScreen>
-    with SingleTickerProviderStateMixin {
+    with SingleTickerProviderStateMixin, WidgetsBindingObserver {
   late AnimationController _controller;
   late Animation<double> sizeTween;
   late AudioPlayer _audioPlayer;
@@ -35,14 +35,18 @@ class _BilateralScreenState extends State<BilateralScreen>
 
   bool isRunning = false;
   bool isAudioPlaying = false;
-  bool shouldPlayAudio = false; // Track if audio should be playing
+  bool shouldPlayAudio = false;
   int completedRounds = 0;
   int totalRounds = 0;
   bool lastPhaseWasInhale = false;
 
+  // NEW: Variables to track pause state
+  bool isPaused = false;
+  double pausedPosition = 0.0;
+
   // Volume control variables
-  double ambientVolume = 0.7; // Default volume (0.0 to 1.0)
-  double bellVolume = 1.0; // Default volume (0.0 to 1.0)
+  double ambientVolume = 0.7;
+  double bellVolume = 1.0;
   bool showVolumeControls = false;
 
   // Countdown variables
@@ -55,6 +59,7 @@ class _BilateralScreenState extends State<BilateralScreen>
   @override
   void initState() {
     super.initState();
+    WidgetsBinding.instance.addObserver(this);
     totalRounds = widget.rounds;
 
     // Animation setup
@@ -93,19 +98,21 @@ class _BilateralScreenState extends State<BilateralScreen>
         completedRounds++;
 
         if (completedRounds >= totalRounds && totalRounds > 0) {
+          await _stopAllAudio(); // Stop all audio when exercise completes
           _controller.stop();
           setState(() {
             isRunning = false;
+            isPaused = false; // Reset pause state
+            pausedPosition = 0.0;
             breathingText = "Complete";
           });
-          // Pause audio when exercise completes
-          await _pauseAmbientAudio();
           return;
         }
 
         _controller.reset();
         setState(() {
           lastPhaseWasInhale = false;
+          pausedPosition = 0.0; // Reset pause position for new cycle
         });
 
         await Future.delayed(const Duration(milliseconds: 5));
@@ -145,6 +152,17 @@ class _BilateralScreenState extends State<BilateralScreen>
     _setupBellPlayer();
   }
 
+  // Handle app lifecycle changes
+  @override
+  void didChangeAppLifecycleState(AppLifecycleState state) {
+    super.didChangeAppLifecycleState(state);
+    if (state == AppLifecycleState.paused ||
+        state == AppLifecycleState.detached ||
+        state == AppLifecycleState.inactive) {
+      _stopAllAudio();
+    }
+  }
+
   Future<void> _setupAudioPlayer() async {
     try {
       await _audioPlayer.setSourceAsset(widget.audioPath);
@@ -168,6 +186,10 @@ class _BilateralScreenState extends State<BilateralScreen>
     try {
       // Stop any current playing to avoid overlap
       await _bellPlayer.stop();
+
+      // Only play bell sound if breathing is actually running
+      if (!isRunning || isCountingDown) return;
+
       // Play different bell sounds for inhale and exhale
       if (breathingText == "Inhale") {
         await _bellPlayer.play(AssetSource(widget.inhaleAudioPath));
@@ -176,6 +198,19 @@ class _BilateralScreenState extends State<BilateralScreen>
       }
     } catch (e) {
       print('Error playing bell sound: $e');
+    }
+  }
+
+  // Helper method to stop all audio
+  Future<void> _stopAllAudio() async {
+    try {
+      await _audioPlayer.stop();
+      await _bellPlayer.stop();
+      setState(() {
+        isAudioPlaying = false;
+      });
+    } catch (e) {
+      print('Error stopping audio: $e');
     }
   }
 
@@ -263,24 +298,40 @@ class _BilateralScreenState extends State<BilateralScreen>
     setState(() {
       isRunning = true;
     });
-    _controller.forward();
+
+    // NEW: Resume from paused position if we were paused
+    if (isPaused && pausedPosition > 0) {
+      _controller.forward(from: pausedPosition);
+      setState(() {
+        isPaused = false;
+      });
+    } else {
+      _controller.forward();
+    }
+
     // Play initial bell sound when starting
     if (_controller.value < 0.01) {
       _playBellSound();
     }
   }
 
-  void toggleBreathing() {
+  // UPDATED: Modified to preserve animation position when pausing
+  void toggleBreathing() async {
     if (isRunning) {
-      _controller.stop();
+      // PAUSE: Save current position and stop animation
       setState(() {
+        pausedPosition = _controller.value;
+        isPaused = true;
         isRunning = false;
       });
+      _controller.stop();
+      await _bellPlayer.stop(); // Stop bell sound immediately when pausing
       // Pause ambient audio when breathing is paused
       _pauseAmbientAudio();
     } else if (isCountingDown) {
       // Cancel countdown if it's in progress
       _countdownTimer?.cancel();
+      await _bellPlayer.stop(); // Stop any playing bell sounds
       setState(() {
         isCountingDown = false;
         breathingText = "Inhale";
@@ -288,11 +339,21 @@ class _BilateralScreenState extends State<BilateralScreen>
       // Pause audio when canceling countdown
       _pauseAmbientAudio();
     } else {
+      // Check if we're resuming from a pause
+      if (isPaused && pausedPosition > 0) {
+        // RESUME: Continue from where we left off
+        _startBreathingCycle();
+        _resumeAmbientAudio();
+        return;
+      }
+
       // Reset if completed
       if (breathingText == "Complete") {
         setState(() {
           completedRounds = 0;
           lastPhaseWasInhale = false;
+          pausedPosition = 0.0;
+          isPaused = false;
         });
       }
       // Start countdown before actual breathing
@@ -337,11 +398,16 @@ class _BilateralScreenState extends State<BilateralScreen>
 
   @override
   void dispose() {
-    _controller.dispose();
-    _audioPlayer.stop();
-    _audioPlayer.dispose();
-    _bellPlayer.dispose();
+    WidgetsBinding.instance.removeObserver(this);
     _countdownTimer?.cancel();
+    _controller.dispose();
+
+    // Properly stop and dispose audio players
+    _stopAllAudio().then((_) {
+      _audioPlayer.dispose();
+      _bellPlayer.dispose();
+    });
+
     super.dispose();
   }
 
@@ -360,6 +426,14 @@ class _BilateralScreenState extends State<BilateralScreen>
         centerTitle: true,
         backgroundColor: Colors.blueGrey,
         elevation: 10,
+        leading: IconButton(
+          icon: const Icon(Icons.arrow_back, color: Colors.white),
+          onPressed: () async {
+            // Stop all audio before navigating back
+            await _stopAllAudio();
+            Navigator.of(context).pop();
+          },
+        ),
         actions: [
           // Volume control button
           IconButton(

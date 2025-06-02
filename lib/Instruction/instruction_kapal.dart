@@ -457,8 +457,8 @@ class _KapalbhatiPranayamaPageState extends State<KapalbhatiPranayamaPage> {
                     rounds: rounds,
                     imagePath: _selectedImage,
                     audioPath: audioPath,
-                    inhaleAudioPath: 'music/inhale_bell1.mp3',
-                    exhaleAudioPath: 'music/exhale_bell1.mp3',
+                    inhaleAudioPath: '', // Remove separate inhale audio
+                    exhaleAudioPath: '', // Remove separate exhale audio
                   ),
               transitionsBuilder:
                   (context, animation, secondaryAnimation, child) {

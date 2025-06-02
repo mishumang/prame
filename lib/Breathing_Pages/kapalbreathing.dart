@@ -40,6 +40,7 @@ class _KapalBreathingScreenState extends State<KapalBreathingScreen>
   // Audio
   final AudioPlayer _audioPlayer = AudioPlayer();
   final AudioPlayer _bellPlayer = AudioPlayer();
+  final AudioPlayer _rhythmBellPlayer = AudioPlayer(); // New player for rhythm bell
   double ambientVolume = 0.3;
   double bellVolume = 0.7;
 
@@ -62,6 +63,7 @@ class _KapalBreathingScreenState extends State<KapalBreathingScreen>
   // Timers
   Timer? _breathingTimer;
   Timer? _countdownTimer;
+  Timer? _bellTimer; // New timer for rhythm bell
 
   @override
   void initState() {
@@ -121,6 +123,10 @@ class _KapalBreathingScreenState extends State<KapalBreathingScreen>
         await _bellPlayer.setSource(AssetSource(widget.inhaleAudioPath));
         await _bellPlayer.setVolume(bellVolume);
       }
+
+      // Preload rhythm bell
+      await _rhythmBellPlayer.setSource(AssetSource('music/newbell.mp3'));
+      await _rhythmBellPlayer.setVolume(bellVolume);
     } catch (e) {
       debugPrint('Error loading audio: $e');
     }
@@ -179,7 +185,7 @@ class _KapalBreathingScreenState extends State<KapalBreathingScreen>
     _playInhaleSound();
 
     Timer(Duration(seconds: widget.inhaleDuration), () {
-      if (mounted) {
+      if (mounted && isRunning && !isPaused) {
         _startExhaleSequence();
       }
     });
@@ -192,7 +198,26 @@ class _KapalBreathingScreenState extends State<KapalBreathingScreen>
       currentExhaleCount = 1;
     });
 
+    _startRhythmBell(); // Start the rhythm bell
     _performSharpExhales();
+  }
+
+  void _startRhythmBell() {
+    // Start playing bell every 1-2 seconds based on exhale interval
+    int bellInterval = widget.exhaleInterval * 1000; // Convert to milliseconds
+
+    _bellTimer = Timer.periodic(Duration(milliseconds: bellInterval), (timer) {
+      if (mounted && isRunning && !isPaused && isExhalePhase) {
+        _playRhythmBell();
+      } else {
+        timer.cancel();
+      }
+    });
+  }
+
+  void _stopRhythmBell() {
+    _bellTimer?.cancel();
+    _bellTimer = null;
   }
 
   void _performSharpExhales() {
@@ -218,6 +243,7 @@ class _KapalBreathingScreenState extends State<KapalBreathingScreen>
             }
           });
         } else {
+          _stopRhythmBell(); // Stop rhythm bell when exhales are complete
           _completeRound();
         }
       }
@@ -231,6 +257,7 @@ class _KapalBreathingScreenState extends State<KapalBreathingScreen>
       isInhalePhase = false;
     });
 
+    _stopRhythmBell(); // Ensure rhythm bell is stopped
     _playBellSound();
     _breathingController.reset();
 
@@ -255,6 +282,7 @@ class _KapalBreathingScreenState extends State<KapalBreathingScreen>
       currentExhaleCount = 0;
     });
 
+    _stopRhythmBell(); // Stop rhythm bell
     _stopAmbientSound();
     _playBellSound();
     _breathingController.reset();
@@ -305,15 +333,21 @@ class _KapalBreathingScreenState extends State<KapalBreathingScreen>
     });
 
     if (isPaused) {
+      // Pause everything
       _breathingController.stop();
-      _audioPlayer.pause();
+      _pulseController.stop();
+      _audioPlayer.pause(); // Pause ambient audio
+      _stopRhythmBell(); // Stop rhythm bell when paused
       _breathingTimer?.cancel();
     } else {
-      _audioPlayer.resume();
+      // Resume everything
+      _audioPlayer.resume(); // Resume ambient audio
+
       // Resume the current phase
       if (isInhalePhase) {
         _breathingController.forward();
       } else if (isExhalePhase) {
+        _startRhythmBell(); // Restart rhythm bell when resuming exhale phase
         _performSharpExhales();
       }
     }
@@ -332,6 +366,7 @@ class _KapalBreathingScreenState extends State<KapalBreathingScreen>
     _breathingController.reset();
     _pulseController.reset();
     _stopAmbientSound();
+    _stopRhythmBell(); // Stop rhythm bell
     _breathingTimer?.cancel();
     _countdownTimer?.cancel();
   }
@@ -339,8 +374,8 @@ class _KapalBreathingScreenState extends State<KapalBreathingScreen>
   Future<void> _playAmbientSound() async {
     try {
       if (widget.audioPath.isNotEmpty) {
-        await _audioPlayer.resume();
         await _audioPlayer.setReleaseMode(ReleaseMode.loop);
+        await _audioPlayer.resume();
       }
     } catch (e) {
       debugPrint('Error playing ambient sound: $e');
@@ -379,10 +414,19 @@ class _KapalBreathingScreenState extends State<KapalBreathingScreen>
 
   Future<void> _playBellSound() async {
     try {
-      await _bellPlayer.setSource(AssetSource('sounds/inhale_bell.mp3'));
+      await _bellPlayer.setSource(AssetSource('music/kapalnew.mp3'));
       await _bellPlayer.resume();
     } catch (e) {
       debugPrint('Error playing bell sound: $e');
+    }
+  }
+
+  Future<void> _playRhythmBell() async {
+    try {
+      await _rhythmBellPlayer.setSource(AssetSource('music/kapalnew.mp3'));
+      await _rhythmBellPlayer.resume();
+    } catch (e) {
+      debugPrint('Error playing rhythm bell: $e');
     }
   }
 
@@ -657,8 +701,10 @@ class _KapalBreathingScreenState extends State<KapalBreathingScreen>
     _waveController.dispose();
     _audioPlayer.dispose();
     _bellPlayer.dispose();
+    _rhythmBellPlayer.dispose(); // Dispose new player
     _breathingTimer?.cancel();
     _countdownTimer?.cancel();
+    _bellTimer?.cancel(); // Cancel bell timer
     super.dispose();
   }
 }

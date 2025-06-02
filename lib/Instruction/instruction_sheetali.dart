@@ -12,19 +12,19 @@ class SheetaliPranayamaPage extends StatefulWidget {
 
 class _SheetaliPranayamaPageState extends State<SheetaliPranayamaPage> {
   // Configuration state
-  String _selectedTechnique = '4:4';
+  String _selectedTechnique = '4:6';
   String _selectedImage = 'assets/images/option3.png';
   int _selectedDuration = 5;
   String _selectedSound = 'None';
-  int? _customInhale;
-  int? _customExhale;
+  int _customInhale = 4;
+  int _customExhale = 6;
   final ScrollController _soundController = ScrollController();
 
-  // Constants
+  // Constants - Updated to match Nadi Shodhana pattern
   static const _techniques = [
-    {'value': '4:4', 'label': 'Recommended', 'inhale': 4, 'exhale': 4},
-    {'value': '6:6', 'label': 'Extended', 'inhale': 6, 'exhale': 6},
-    {'value': '5:7', 'label': 'Balanced', 'inhale': 5, 'exhale': 7},
+    {'value': '4:6', 'label': 'Recommended', 'inhale': 4, 'exhale': 6},
+    {'value': '4:8', 'label': 'Extended', 'inhale': 4, 'exhale': 8},
+    {'value': '4:4', 'label': 'Balanced', 'inhale': 4, 'exhale': 4},
     {'value': 'custom', 'label': 'Custom', 'inhale': 0, 'exhale': 0},
   ];
 
@@ -77,13 +77,13 @@ class _SheetaliPranayamaPageState extends State<SheetaliPranayamaPage> {
   }
 
   int get _roundSeconds {
-    if (_selectedTechnique == 'custom' && _customInhale != null && _customExhale != null) {
-      return _customInhale! + _customExhale!;
+    if (_selectedTechnique == 'custom') {
+      return _customInhale + _customExhale;
     }
 
     final technique = _techniques.firstWhere(
           (t) => t['value'] == _selectedTechnique,
-      orElse: () => {'inhale': 4, 'exhale': 4},
+      orElse: () => {'inhale': 4, 'exhale': 6},
     );
     return (technique['inhale'] as int) + (technique['exhale'] as int);
   }
@@ -179,7 +179,7 @@ class _SheetaliPranayamaPageState extends State<SheetaliPranayamaPage> {
           childAspectRatio: 2.2,
           children: _techniques.map(_buildTechniqueOption).toList(),
         ),
-        if (_selectedTechnique == 'custom' && _customInhale != null && _customExhale != null) ...[
+        if (_selectedTechnique == 'custom') ...[
           const SizedBox(height: 16),
           _buildCustomPatternDisplay(),
         ],
@@ -189,7 +189,7 @@ class _SheetaliPranayamaPageState extends State<SheetaliPranayamaPage> {
 
   Widget _buildTechniqueOption(Map<String, dynamic> technique) {
     final bool isSelected = _selectedTechnique == technique['value'];
-    final bool isRecommended = technique['value'] == '4:4';
+    final bool isRecommended = technique['value'] == '4:6';
 
     return GestureDetector(
       onTap: () => _handleTechniqueSelection(technique),
@@ -238,15 +238,15 @@ class _SheetaliPranayamaPageState extends State<SheetaliPranayamaPage> {
     if (technique['value'] == 'custom') {
       final result = await showCustomizationDialog(
         context,
-        initialInhale: _customInhale ?? 4,
-        initialExhale: _customExhale ?? 4,
+        initialInhale: _customInhale,
+        initialExhale: _customExhale,
         initialHold: 0,
       );
       if (result != null && mounted) {
         setState(() {
           _selectedTechnique = 'custom';
-          _customInhale = result['inhale'];
-          _customExhale = result['exhale'];
+          _customInhale = result['inhale'] ?? 4;
+          _customExhale = result['exhale'] ?? 6;
         });
       }
     } else if (mounted) {
@@ -675,14 +675,13 @@ class _SheetaliPranayamaPageState extends State<SheetaliPranayamaPage> {
 
   (int inhale, int exhale) _parseBreathingPattern() {
     if (_selectedTechnique == 'custom') {
-      return (_customInhale ?? 4, _customExhale ?? 4);
+      return (_customInhale, _customExhale);
     }
 
-    final technique = _techniques.firstWhere(
-          (t) => t['value'] == _selectedTechnique,
-      orElse: () => {'inhale': 4, 'exhale': 4},
-    );
-    return (technique['inhale'] as int, technique['exhale'] as int);
+    final parts = _selectedTechnique.split(':');
+    final inhale = parts.isNotEmpty ? int.tryParse(parts[0]) ?? 4 : 4;
+    final exhale = parts.length > 1 ? int.tryParse(parts[1]) ?? 6 : 6;
+    return (inhale, exhale);
   }
 
   int _calculateRounds(int inhale, int exhale) {

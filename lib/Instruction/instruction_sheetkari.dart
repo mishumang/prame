@@ -34,8 +34,8 @@ class _SheetkariPranayamaPageState extends State<SheetkariPranayamaPage> {
   String _selectedImage = 'assets/images/option3.png';
   int _selectedDuration = 5;
   String _selectedSound = 'None';
-  int? _customInhale = 4;
-  int? _customExhale = 4;
+  int _customInhale = 4;
+  int _customExhale = 4;
 
   // Scroll controllers
   final ScrollController _soundController = ScrollController();
@@ -56,9 +56,9 @@ class _SheetkariPranayamaPageState extends State<SheetkariPranayamaPage> {
   ];
 
   static const _techniques = [
-    {'value': '4:4', 'label': 'Standard', 'inhale': 4, 'exhale': 4},
-    {'value': '4:6', 'label': 'Extended', 'inhale': 4, 'exhale': 6},
-    {'value': '3:3', 'label': 'Gentle', 'inhale': 3, 'exhale': 3},
+    {'value': '4:6', 'label': 'Recommended', 'inhale': 4, 'exhale': 6},
+    {'value': '4:8', 'label': 'Extended', 'inhale': 4, 'exhale': 8},
+    {'value': '4:4', 'label': 'Balanced', 'inhale': 4, 'exhale': 4},
     {'value': 'custom', 'label': 'Custom', 'inhale': 0, 'exhale': 0},
   ];
 
@@ -137,11 +137,7 @@ class _SheetkariPranayamaPageState extends State<SheetkariPranayamaPage> {
           _buildVisualizationSection(),
           const SizedBox(height: 24),
           _buildSoundSection(),
-          const SizedBox(height: 24),
-          if (_selectedTechnique == 'custom') ...[
-            _buildCustomizeButton(),
-            const SizedBox(height: 16),
-          ],
+          const SizedBox(height: 32),
           _buildBeginButton(),
           const SizedBox(height: 32),
           _buildAboutSection(),
@@ -192,7 +188,7 @@ class _SheetkariPranayamaPageState extends State<SheetkariPranayamaPage> {
           childAspectRatio: 2.2,
           children: _techniques.map(_buildTechniqueOption).toList(),
         ),
-        if (_selectedTechnique == 'custom' && _customInhale != null && _customExhale != null) ...[
+        if (_selectedTechnique == 'custom') ...[
           const SizedBox(height: 16),
           _buildCustomPatternDisplay(),
         ],
@@ -254,15 +250,15 @@ class _SheetkariPranayamaPageState extends State<SheetkariPranayamaPage> {
     if (technique['value'] == 'custom') {
       final result = await showCustomizationDialog(
         context,
-        initialInhale: _customInhale ?? 4,
-        initialExhale: _customExhale ?? 4,
+        initialInhale: _customInhale,
+        initialExhale: _customExhale,
         initialHold: 0,
       );
       if (result != null && mounted) {
         setState(() {
           _selectedTechnique = 'custom';
-          _customInhale = result['inhale'];
-          _customExhale = result['exhale'];
+          _customInhale = result['inhale'] ?? 4;
+          _customExhale = result['exhale'] ?? 4;
         });
       }
     } else if (mounted) {
@@ -529,28 +525,43 @@ class _SheetkariPranayamaPageState extends State<SheetkariPranayamaPage> {
     );
   }
 
-  Widget _buildCustomizeButton() {
-    return OutlinedButton.icon(
-      icon: const Icon(Icons.settings, size: 20),
-      label: const Text("Customize Breathing Pattern"),
-      onPressed: () => _handleTechniqueSelection(_techniques.firstWhere(
-            (t) => t['value'] == 'custom',
-        orElse: () => _techniques[3],
-      )),
-      style: OutlinedButton.styleFrom(
-        foregroundColor: Colors.blue[700],
-        side: BorderSide(color: Colors.blue[600]!),
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-        padding: const EdgeInsets.symmetric(vertical: 14),
-      ),
-    );
-  }
-
   Widget _buildBeginButton() {
+    final (inhale, exhale) = _parseBreathingPattern();
+    final rounds = _calculateRounds(inhale, exhale);
+    final selectedSoundOption = _soundOptions.firstWhere(
+          (sound) => sound['name'] == _selectedSound,
+      orElse: () => {'name': 'None', 'imagePath': '', 'audioPath': ''},
+    );
+    final audioPath = selectedSoundOption['audioPath']!;
+
     return SizedBox(
       width: double.infinity,
       child: ElevatedButton(
-        onPressed: _navigateToTechnique,
+        onPressed: () {
+          HapticFeedback.lightImpact();
+          Navigator.push(
+            context,
+            PageRouteBuilder(
+              pageBuilder: (context, animation, secondaryAnimation) =>
+                  BilateralScreen(
+                    inhaleDuration: inhale,
+                    exhaleDuration: exhale,
+                    rounds: rounds,
+                    imagePath: _selectedImage,
+                    audioPath: audioPath,
+                    inhaleAudioPath: 'music/inhale_bell1.mp3',
+                    exhaleAudioPath: 'music/exhale_bell1.mp3',
+                  ),
+              transitionsBuilder:
+                  (context, animation, secondaryAnimation, child) {
+                return FadeTransition(
+                  opacity: animation,
+                  child: child,
+                );
+              },
+            ),
+          );
+        },
         style: ElevatedButton.styleFrom(
           backgroundColor: Colors.blue[600],
           foregroundColor: Colors.white,
@@ -580,9 +591,10 @@ class _SheetkariPranayamaPageState extends State<SheetkariPranayamaPage> {
         const SizedBox(height: 12),
         Text(
           "Sheetkari Pranayama is a cooling breath where you part your lips slightly and inhale through your teeth, producing a hissing sound, then exhale through your nose.",
-          style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-            height: 1.5,
-            color: Colors.blueGrey[800],
+          style: TextStyle(
+              fontSize: 15,
+              height: 1.5,
+              color: Colors.blueGrey[700]
           ),
         ),
       ],
@@ -672,39 +684,9 @@ class _SheetkariPranayamaPageState extends State<SheetkariPranayamaPage> {
     );
   }
 
-  void _navigateToTechnique() {
-    final (inhale, exhale) = _getBreathingPattern();
-    final rounds = _calculateRounds(inhale, exhale);
-
-    // Get the selected audio path
-    final selectedSound = _soundOptions.firstWhere(
-          (s) => s['name'] == _selectedSound,
-      orElse: () => {'audioPath': ''},
-    );
-    final audioPath = selectedSound['audioPath']!;
-
-    HapticFeedback.lightImpact();
-    Navigator.push(
-      context,
-      PageRouteBuilder(
-        pageBuilder: (_, anim, __) => BilateralScreen(
-          inhaleDuration: inhale,
-          exhaleDuration: exhale,
-          rounds: rounds,
-          imagePath: _selectedImage,
-          audioPath: audioPath,
-          inhaleAudioPath: 'music/inhale_bell1.mp3',
-          exhaleAudioPath: 'music/exhale_bell1.mp3',
-        ),
-        transitionsBuilder: (_, anim, __, child) =>
-            FadeTransition(opacity: anim, child: child),
-      ),
-    );
-  }
-
-  (int inhale, int exhale) _getBreathingPattern() {
+  (int inhale, int exhale) _parseBreathingPattern() {
     if (_selectedTechnique == 'custom') {
-      return (_customInhale ?? 4, _customExhale ?? 4);
+      return (_customInhale, _customExhale);
     }
 
     final parts = _selectedTechnique.split(':');
@@ -714,8 +696,7 @@ class _SheetkariPranayamaPageState extends State<SheetkariPranayamaPage> {
   }
 
   int _calculateRounds(int inhale, int exhale) {
-    final roundSeconds = inhale + exhale;
-    final rounds = (_selectedDuration * 60) ~/ roundSeconds;
+    final rounds = (_selectedDuration * 60) ~/ (inhale + exhale);
     return rounds < 1 ? 1 : rounds;
   }
 }

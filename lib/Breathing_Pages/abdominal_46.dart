@@ -55,14 +55,16 @@ class _AbdominalScreenState extends State<AbdominalScreen>
   late AudioPlayer _bellPlayer;
 
   bool isRunning = false;
+  bool isPaused = false;
   bool isAudioPlaying = false;
+  bool wasAudioPlayingBeforePause = false; // Track audio state before pause
   int completedRounds = 0;
   int totalRounds = 0;
   bool lastPhaseWasInhale = false;
 
   // Volume control variables
-  double ambientVolume = 0.7; // Default volume (0.0 to 1.0)
-  double bellVolume = 1.0; // Default volume (0.0 to 1.0)
+  double ambientVolume = 0.7;
+  double bellVolume = 1.0;
   bool showVolumeControls = false;
 
   // Countdown variables
@@ -114,8 +116,10 @@ class _AbdominalScreenState extends State<AbdominalScreen>
 
         if (completedRounds >= totalRounds && totalRounds > 0) {
           _controller.stop();
+          await _pauseAllAudio(); // Pause audio when exercise completes
           setState(() {
             isRunning = false;
+            isPaused = false;
             breathingText = "Complete";
           });
           return;
@@ -128,7 +132,7 @@ class _AbdominalScreenState extends State<AbdominalScreen>
 
         await Future.delayed(const Duration(milliseconds: 5));
 
-        if (isRunning) {
+        if (isRunning && !isPaused) {
           _controller.forward();
         }
       }
@@ -184,6 +188,9 @@ class _AbdominalScreenState extends State<AbdominalScreen>
 
   Future<void> _playBellSound() async {
     try {
+      // Don't play bell sounds when paused
+      if (isPaused) return;
+
       // Stop any current playing to avoid overlap
       await _bellPlayer.stop();
 
@@ -206,6 +213,40 @@ class _AbdominalScreenState extends State<AbdominalScreen>
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(content: Text('Error playing bell sound: $e')),
         );
+      }
+    }
+  }
+
+  // NEW: Method to pause all audio
+  Future<void> _pauseAllAudio() async {
+    if (isAudioPlaying) {
+      await _audioPlayer.pause();
+      setState(() {
+        isAudioPlaying = false;
+      });
+    }
+    // Also stop any playing bell sounds
+    await _bellPlayer.stop();
+  }
+
+  // NEW: Method to resume audio if it was playing before pause
+  Future<void> _resumeAudioIfNeeded() async {
+    if (wasAudioPlayingBeforePause && widget.audioPath.isNotEmpty) {
+      try {
+        await _audioPlayer.resume();
+        setState(() {
+          isAudioPlaying = true;
+        });
+      } catch (e) {
+        // Try to play if resume fails
+        try {
+          await _audioPlayer.play(AssetSource(widget.audioPath));
+          setState(() {
+            isAudioPlaying = true;
+          });
+        } catch (e) {
+          print('Error resuming audio: $e');
+        }
       }
     }
   }
@@ -262,6 +303,7 @@ class _AbdominalScreenState extends State<AbdominalScreen>
   void _startBreathingCycle() {
     setState(() {
       isRunning = true;
+      isPaused = false;
     });
     _controller.forward();
     // Play initial bell sound when starting
@@ -271,25 +313,45 @@ class _AbdominalScreenState extends State<AbdominalScreen>
   }
 
   void toggleBreathing() {
-    if (isRunning) {
-      _controller.stop();
-      setState(() {
-        isRunning = false;
-      });
-    } else if (isCountingDown) {
+    if (isCountingDown) {
       // Cancel countdown if it's in progress
       _countdownTimer?.cancel();
+      // MODIFIED: Also pause audio when canceling countdown
+      _pauseAllAudio();
       setState(() {
         isCountingDown = false;
         breathingText = "Inhale";
       });
+    } else if (isRunning && !isPaused) {
+      // MODIFIED: Pause the breathing exercise AND audio
+      _controller.stop(); // This stops the animation at current position
+      // Remember if audio was playing before pause
+      wasAudioPlayingBeforePause = isAudioPlaying;
+      _pauseAllAudio(); // Pause all audio
+      setState(() {
+        isPaused = true;
+        // Keep the current breathing text when paused
+      });
+    } else if (isPaused) {
+      // MODIFIED: Resume from pause AND resume audio if it was playing
+      setState(() {
+        isPaused = false;
+      });
+      _controller.forward(); // Continue from current position
+      _resumeAudioIfNeeded(); // Resume audio if it was playing before pause
     } else {
-      // Reset if completed
+      // Start or restart
       if (breathingText == "Complete") {
+        // Reset everything for restart
         setState(() {
           completedRounds = 0;
           lastPhaseWasInhale = false;
+          isPaused = false;
+          wasAudioPlayingBeforePause = false;
         });
+        _controller.reset();
+        // Stop any playing audio
+        _pauseAllAudio();
       }
       // Start countdown before actual breathing
       _startCountdown();
@@ -494,11 +556,11 @@ class _AbdominalScreenState extends State<AbdominalScreen>
             ],
           ),
           child: Text(
-            text,
+            isPaused ? "$text (Paused)" : text, // Show paused status
             style: TextStyle(
               fontSize: isCountdown ? 50 : 30, // Larger font for countdown
               fontWeight: FontWeight.bold,
-              color: isCountdown ? Colors.amber : Colors.white, // Amber color for countdown
+              color: isPaused ? Colors.orange : (isCountdown ? Colors.amber : Colors.white), // Orange color when paused
             ),
           ),
         );
@@ -514,8 +576,8 @@ class _AbdominalScreenState extends State<AbdominalScreen>
           double progress = _controller.value;
           double scale;
 
-          // Don't animate during countdown
-          if (isCountingDown) {
+          // Don't animate during countdown or when paused
+          if (isCountingDown || isPaused) {
             scale = 1.0;
           } else if (progress <= widget.inhaleDuration / (widget.inhaleDuration + widget.exhaleDuration)) {
             scale = 1.0 + 0.5 * (progress / (widget.inhaleDuration / (widget.inhaleDuration + widget.exhaleDuration)));
@@ -540,7 +602,7 @@ class _AbdominalScreenState extends State<AbdominalScreen>
             ),
             boxShadow: [
               BoxShadow(
-                color: Colors.red.shade600.withOpacity(0.75),
+                color: (isPaused ? Colors.orange : Colors.red).shade600.withOpacity(0.75),
                 blurRadius: 10,
                 spreadRadius: 10,
               ),
@@ -557,6 +619,8 @@ class _AbdominalScreenState extends State<AbdominalScreen>
         Text(
           isCountingDown
               ? "Preparing to start..."
+              : isPaused
+              ? "Paused - Round ${completedRounds + 1} of $totalRounds"
               : "Round ${completedRounds + (isRunning ? 1 : 0)} of $totalRounds",
           style: const TextStyle(
             color: Colors.white70,
@@ -575,7 +639,7 @@ class _AbdominalScreenState extends State<AbdominalScreen>
                   : (totalRounds > 0 ? (completedRounds / totalRounds) : 0),
               backgroundColor: Colors.grey.withOpacity(0.3),
               valueColor: AlwaysStoppedAnimation<Color>(
-                  isCountingDown ? Colors.amber : Colors.teal
+                  isCountingDown ? Colors.amber : (isPaused ? Colors.orange : Colors.teal)
               ),
               minHeight: 10,
             ),
@@ -589,17 +653,29 @@ class _AbdominalScreenState extends State<AbdominalScreen>
     return ElevatedButton.icon(
       onPressed: toggleBreathing,
       style: ElevatedButton.styleFrom(
-        backgroundColor: isCountingDown ? Colors.amber : Colors.teal,
+        backgroundColor: isCountingDown
+            ? Colors.amber
+            : isPaused
+            ? Colors.green
+            : isRunning
+            ? Colors.orange
+            : Colors.teal,
         padding: const EdgeInsets.symmetric(horizontal: 30, vertical: 15),
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(30)),
         elevation: 10,
       ),
       icon: Icon(
-          isCountingDown ? Icons.cancel : (isRunning ? Icons.pause : Icons.play_arrow)
+          isCountingDown
+              ? Icons.cancel
+              : isPaused
+              ? Icons.play_arrow
+              : (isRunning ? Icons.pause : Icons.play_arrow)
       ),
       label: Text(
         isCountingDown
             ? "Cancel"
+            : isPaused
+            ? "Resume"
             : (isRunning ? "Pause" : (completedRounds >= totalRounds && totalRounds > 0) ? "Restart" : "Start"),
         style: const TextStyle(fontSize: 20),
       ),

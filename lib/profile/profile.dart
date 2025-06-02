@@ -464,6 +464,24 @@ class _MeditationProfileState extends State<MeditationProfile> {
         ),
         SizedBox(height: 16),
         _buildNavCard(
+          title: 'Feedback',
+          subtitle: 'Share your thoughts and suggestions',
+          icon: Icons.feedback_outlined,
+          primaryBlue: primaryBlue,
+          lightBlue: lightBlue,
+          onTap: () async {
+            const url = 'https://docs.google.com/forms/d/e/1FAIpQLSeFmPPfJqqb3NPP4f0JHQSMOM0Z0WHRd6Ubbl3sRHlL9w-lfg/viewform';
+            if (await canLaunchUrl(Uri.parse(url))) {
+              await launchUrl(Uri.parse(url), mode: LaunchMode.externalApplication);
+            } else {
+              ScaffoldMessenger.of(context).showSnackBar(
+                  SnackBar(content: Text('Could not open the feedback form'))
+              );
+            }
+          },
+        ),
+        SizedBox(height: 16),
+        _buildNavCard(
           title: 'Contributors',
           subtitle: 'Meet the team behind the app',
           icon: Icons.people_outline_rounded,
@@ -1294,31 +1312,7 @@ class AboutUsPage extends StatelessWidget {
                     _buildSocialMediaIcon(context, Icons.whatshot, primaryBlue),
                   ],
                 ),
-                SizedBox(height: 16),
-                ElevatedButton(
-                  onPressed: () async {
-                    const url = 'https://docs.google.com/forms/d/e/1FAIpQLSeFmPPfJqqb3NPP4f0JHQSMOM0Z0WHRd6Ubbl3sRHlL9w-lfg/viewform'; // replace with your actual GForm link
-                    if (await canLaunchUrl(Uri.parse(url))) {
-                      await launchUrl(Uri.parse(url), mode: LaunchMode.externalApplication);
-                    } else {
-                      ScaffoldMessenger.of(context).showSnackBar(
-                          SnackBar(content: Text('Could not open the feedback form'))
-                      );
-                    }
-                  },
-                  style: ElevatedButton.styleFrom(
-                    backgroundColor: accentRed,
-                    foregroundColor: Colors.white,
-                    padding: EdgeInsets.symmetric(horizontal: 32, vertical: 12),
-                    shape: RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(30),
-                    ),
-                  ),
-                  child: Text(
-                    'Feedback form!',
-                    style: TextStyle(fontSize: 16),
-                  ),
-                ),
+
               ],
             ),
           ),

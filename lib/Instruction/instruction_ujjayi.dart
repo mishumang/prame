@@ -33,7 +33,7 @@ class _UjjayiPranayamaPageState extends State<UjjayiPranayamaPage> {
   static const _techniques = [
     {'value': '4:6', 'label': 'Recommended', 'inhale': 4, 'exhale': 6},
     {'value': '4:8', 'label': 'Extended', 'inhale': 4, 'exhale': 8},
-    {'value': '5:5', 'label': 'Balanced', 'inhale': 5, 'exhale': 5},
+    {'value': '4:4', 'label': 'Balanced', 'inhale': 4, 'exhale': 4},
     {'value': 'custom', 'label': 'Custom', 'inhale': 0, 'exhale': 0},
   ];
 

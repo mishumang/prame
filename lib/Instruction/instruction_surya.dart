@@ -12,20 +12,22 @@ class SuryaBhedanaPranayamaPage extends StatefulWidget {
 
 class _SuryaBhedanaPranayamaPageState extends State<SuryaBhedanaPranayamaPage> {
   // Configuration state
-  String _selectedTechnique = '4:4';
+  String _selectedTechnique = '4:6';
   int _selectedDuration = 5;
   String _selectedImage = 'assets/images/option3.png';
   String _selectedSound = 'None';
   final ScrollController _soundController = ScrollController();
 
-  int? _customInhale;
-  int? _customExhale;
+  int _customInhale = 4;
+  int _customExhale = 6;
 
-  // Constants
-  final Map<String, String> _techniques = {
-    '4:4': '4:4 Surya Bhedana Pranayama (Recommended)',
-    'custom': 'Customize Technique',
-  };
+  // Constants - Updated to match Nadi Shodhana structure
+  static const _techniques = [
+    {'value': '4:6', 'label': 'Recommended', 'inhale': 4, 'exhale': 6},
+    {'value': '4:8', 'label': 'Extended', 'inhale': 4, 'exhale': 8},
+    {'value': '4:4', 'label': 'Balanced', 'inhale': 4, 'exhale': 4},
+    {'value': 'custom', 'label': 'Custom', 'inhale': 0, 'exhale': 0},
+  ];
 
   static const _imageOptions = [
     {'name': '', 'path': 'assets/images/option3.png'},
@@ -116,8 +118,6 @@ class _SuryaBhedanaPranayamaPageState extends State<SuryaBhedanaPranayamaPage> {
           const SizedBox(height: 24),
           _buildSoundSection(),
           const SizedBox(height: 32),
-          if (_selectedTechnique == 'custom') _buildCustomizeButton(),
-          const SizedBox(height: 16),
           _buildBeginButton(),
           const SizedBox(height: 32),
           _buildAboutSection(),
@@ -164,12 +164,9 @@ class _SuryaBhedanaPranayamaPageState extends State<SuryaBhedanaPranayamaPage> {
           mainAxisSpacing: 12,
           crossAxisSpacing: 12,
           childAspectRatio: 2.2,
-          children: [
-            _buildTechniqueOption('4:4', 'Recommended', true),
-            _buildTechniqueOption('custom', 'Custom', false),
-          ],
+          children: _techniques.map(_buildTechniqueOption).toList(),
         ),
-        if (_selectedTechnique == 'custom' && _customInhale != null && _customExhale != null) ...[
+        if (_selectedTechnique == 'custom') ...[
           const SizedBox(height: 16),
           _buildCustomPatternDisplay(),
         ],
@@ -177,11 +174,12 @@ class _SuryaBhedanaPranayamaPageState extends State<SuryaBhedanaPranayamaPage> {
     );
   }
 
-  Widget _buildTechniqueOption(String value, String label, bool isRecommended) {
-    final bool isSelected = _selectedTechnique == value;
+  Widget _buildTechniqueOption(Map<String, dynamic> technique) {
+    final bool isSelected = _selectedTechnique == technique['value'];
+    final bool isRecommended = technique['value'] == '4:6';
 
     return GestureDetector(
-      onTap: () => _handleTechniqueSelection(value),
+      onTap: () => _handleTechniqueSelection(technique),
       child: Container(
         padding: const EdgeInsets.all(12),
         decoration: BoxDecoration(
@@ -204,17 +202,17 @@ class _SuryaBhedanaPranayamaPageState extends State<SuryaBhedanaPranayamaPage> {
               const SizedBox(height: 4),
             ],
             Text(
-              label,
+              technique['label'],
               textAlign: TextAlign.center,
               style: Theme.of(context).textTheme.titleMedium?.copyWith(
                 color: isSelected ? const Color(0xff1565c0) : Colors.blueGrey[800],
                 fontWeight: FontWeight.w600,
               ),
             ),
-            if (value != 'custom') ...[
+            if (technique['value'] != 'custom') ...[
               const SizedBox(height: 4),
               Text(
-                value,
+                '${technique['inhale']}:${technique['exhale']}',
                 style: Theme.of(context).textTheme.bodyMedium?.copyWith(
                   color: isSelected ? const Color(0xff1e88e5) : Colors.blueGrey[600],
                 ),
@@ -226,23 +224,23 @@ class _SuryaBhedanaPranayamaPageState extends State<SuryaBhedanaPranayamaPage> {
     );
   }
 
-  Future<void> _handleTechniqueSelection(String value) async {
-    if (value == 'custom') {
+  Future<void> _handleTechniqueSelection(Map<String, dynamic> technique) async {
+    if (technique['value'] == 'custom') {
       final result = await showCustomizationDialog(
         context,
-        initialInhale: _customInhale ?? 4,
-        initialExhale: _customExhale ?? 4,
+        initialInhale: _customInhale,
+        initialExhale: _customExhale,
         initialHold: 0,
       );
       if (result != null && mounted) {
         setState(() {
           _selectedTechnique = 'custom';
-          _customInhale = result['inhale'];
-          _customExhale = result['exhale'];
+          _customInhale = result['inhale'] ?? 4;
+          _customExhale = result['exhale'] ?? 6;
         });
       }
     } else if (mounted) {
-      setState(() => _selectedTechnique = value);
+      setState(() => _selectedTechnique = technique['value']);
     }
   }
 
@@ -260,13 +258,13 @@ class _SuryaBhedanaPranayamaPageState extends State<SuryaBhedanaPranayamaPage> {
       child: Row(
         mainAxisAlignment: MainAxisAlignment.center,
         children: [
-          _buildBreathPhase('INHALE', '${_customInhale} sec'),
+          _buildBreathPhase('INHALE', '$_customInhale sec'),
           const Padding(
             padding: EdgeInsets.symmetric(horizontal: 8),
             child: Icon(Icons.compare_arrows_rounded,
                 color: Colors.blueGrey, size: 24),
           ),
-          _buildBreathPhase('EXHALE', '${_customExhale} sec'),
+          _buildBreathPhase('EXHALE', '$_customExhale sec'),
         ],
       ),
     );
@@ -505,39 +503,9 @@ class _SuryaBhedanaPranayamaPageState extends State<SuryaBhedanaPranayamaPage> {
     );
   }
 
-  Widget _buildCustomizeButton() {
-    return OutlinedButton.icon(
-      icon: Icon(Icons.settings, size: 20, color: Colors.black),
-      label: Text("Customize Breathing Pattern"),
-      style: OutlinedButton.styleFrom(
-        foregroundColor: Colors.black,
-        padding: EdgeInsets.symmetric(vertical: 14),
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-        side: BorderSide(color: const Color(0xff1565c0)),
-      ),
-      onPressed: _showCustomDialog,
-    );
-  }
-
-  Future<void> _showCustomDialog() async {
-    final result = await showCustomizationDialog(
-      context,
-      initialInhale: _customInhale ?? 4,
-      initialExhale: _customExhale ?? 4,
-      initialHold: 0,
-    );
-    if (result != null) {
-      setState(() {
-        _customInhale = result['inhale'];
-        _customExhale = result['exhale'];
-      });
-    }
-  }
-
   Widget _buildBeginButton() {
-    final inhale = _selectedTechnique == '4:4' ? 4 : (_customInhale ?? 4);
-    final exhale = _selectedTechnique == '4:4' ? 4 : (_customExhale ?? 4);
-    final rounds = (_selectedDuration * 60) ~/ (inhale + exhale);
+    final (inhale, exhale) = _parseBreathingPattern();
+    final rounds = _calculateRounds(inhale, exhale);
 
     final selected = _soundOptions.firstWhere(
           (s) => s['name'] == _selectedSound,
@@ -678,5 +646,21 @@ class _SuryaBhedanaPranayamaPageState extends State<SuryaBhedanaPranayamaPage> {
         letterSpacing: 0.8,
       ),
     );
+  }
+
+  (int inhale, int exhale) _parseBreathingPattern() {
+    if (_selectedTechnique == 'custom') {
+      return (_customInhale, _customExhale);
+    }
+
+    final parts = _selectedTechnique.split(':');
+    final inhale = parts.isNotEmpty ? int.tryParse(parts[0]) ?? 4 : 4;
+    final exhale = parts.length > 1 ? int.tryParse(parts[1]) ?? 6 : 6;
+    return (inhale, exhale);
+  }
+
+  int _calculateRounds(int inhale, int exhale) {
+    final rounds = (_selectedDuration * 60) ~/ (inhale + exhale);
+    return rounds < 1 ? 1 : rounds;
   }
 }
